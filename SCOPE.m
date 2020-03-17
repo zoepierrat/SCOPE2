@@ -23,18 +23,22 @@
 %     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 clear all %#ok<CLALL>
-
+restoredefaultpath
 addpath src/RTMs
 addpath src/supporting
 addpath src/fluxes
 addpath src/IO 
+
+%% the following should be inputs...-> Egor
+canopy.crowndiameter = 1;
+canopy.Cv = 1;
 
 %% 1. define constants
 constants = define_constants;
 
 %% 2. paths
 path_input      = 'input/';          % path of all inputs
-path_of_code                = cd;
+path_of_code    = cd;
 
 %% 3. simulation options
 fid = fopen('set_parameter_filenames.csv','r');
@@ -214,16 +218,16 @@ end
 fprintf('\n The calculations start now \r')
 calculate = 1;
 tic
+        
 for k = 1:telmax
     if options.simulation == 1, vi(vmax>1) = k; end
     if options.simulation == 0, vi(vmax==telmax) = k; end
     [soil,leafbio,canopy,meteo,angles,xyt] = select_input(V,vi,canopy,options,constants,xyt,soil);
-    leafbio.Cab = 0.1;
-    leafbio.Cdm = 0.1;
-    canopy.nlayers  = ceil(canopy.LAI*10);
+    canopy.nlayers  = ceil(10*canopy.LAI/canopy.Cv);
     nl              = canopy.nlayers;
-    canopy.x        = (-1/nl : -1/nl : -1)';         % a column vector
-    canopy.xl       = [0; canopy.x];                 % add top level
+	x        = (-1/nl : -1/nl : -1)';         % a column vector
+    canopy.xl       = [0; x];                 % add top level
+  % canopy.xl(1:end-1) = canopy.xl(1:end-1)+canopy.xl(1:end-1)-1/(2*nl); % middle of the thin layer
     
     if options.simulation ~=1
         fprintf('simulation %i ', k );
@@ -282,15 +286,15 @@ for k = 1:telmax
         if options.calc_xanthophyllabs
             [rad] = RTMz(constants,spectral,rad,soil,leafopt,canopy,gap,angles,bcu.Kn,bch.Kn);
         end
-        
+                       
         rad  = RTMt_sb(constants,rad,soil,leafbio,canopy,gap,thermal.Tcu,thermal.Tch,thermal.Tsu,thermal.Tsh,1,spectral);
         if options.calc_planck
-            rad = RTMt_planck(constants,spectral,rad,soil,leafopt,canopy,gap,thermal.Tcu,thermal.Tch,thermal.Tsu,thermal.Tsh,options,angles);
+            rad = RTMt_planck(spectral,rad,soil,leafopt,canopy,gap,thermal.Tcu,thermal.Tch,thermal.Tsu,thermal.Tsh);
         end
         
         %% computation of data products
         % aPAR, LST, NPQ, ETR, photosynthesis, SIF-reabsorption correction
-        
+
         % aPAR [umol m-2 s-1, total canopy and total chlorphyll]
         switch options.lite
             case 0, integr = 'angles_and_layers';
@@ -335,7 +339,7 @@ for k = 1:telmax
         
         % reflectance
         canopy.reflectance     = pi*rad.Lo_./(rad.Esun_+rad.Esky_);
-        
+
         %% write output
         output_data_binary(f,k, xyt, rad,  canopy,V, vi, vmax,options)
         
@@ -350,5 +354,5 @@ end
 fclose('all');
 
 if options.verify
-    output_verification_csv(Output_dir, F(9).FileName)
+    output_verification_csv( Output_dir, F(9).FileName)
 end

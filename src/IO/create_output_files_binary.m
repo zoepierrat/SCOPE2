@@ -6,7 +6,7 @@ Output_dir      = sprintf(['output/',Outdir_Name,'_%4.0f-%02.0f-%02.0f-%02.0f%02
 warning('off','MATLAB:DELETE:FileNotFound')
 if any(~exist(Output_dir,'dir'))
     mkdir(Output_dir)
-    mkdir([Output_dir,'Parameters/'])
+    mkdir([Output_dir,'Parameters' filesep])
 end
 
 

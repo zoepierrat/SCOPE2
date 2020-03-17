@@ -4,7 +4,8 @@ function [rad] = RTMz(constants,spectral,rad,soil,leafopt,canopy,gap,angles,Knu,
 % radiance due to the conversion of Violaxanthin into Zeaxanthin in leaves
 %
 % Author:  Christiaan van der Tol (c.vandertol@utwente.nl)
-% Date:     08 Dec 2016     
+% Date:     08 Dec 2016  
+%           17 Mar 2020     CvdT    added cluming, mSCOPE representation
 %
 % The inputs and outputs are structures. These structures are further
 % specified in a readme file.
@@ -28,9 +29,12 @@ function [rad] = RTMz(constants,spectral,rad,soil,leafopt,canopy,gap,angles,Knu,
 wlS          = spectral.wlS';       % SCOPE wavelengths, make column vectors
 wlZ          = spectral.wlZ';       % Excitation wavelengths
 [dummy,iwlfi]    = intersect(wlS,wlZ); %#ok<ASGLU>
-%nf           = length(iwlfo);
 nl           = canopy.nlayers;
-LAI          = canopy.LAI;
+LAI          = gap.LAI_Cv;
+Cv           = canopy.Cv;
+Cs           = gap.Cs;
+Fod          = gap.Fod;
+Fcd          = gap.Fcd;
 litab        = canopy.litab;
 lazitab      = canopy.lazitab;
 lidf         = canopy.lidf;
@@ -55,11 +59,11 @@ Epluf_             = rad.Eplu_(:,iwlfi)';
 iLAI               = LAI/nl;                       % LAI of a layer        [1]
 
 Xdd         = rad.Xdd(:,iwlfi);
-rho_dd      = rad.rho_dd(iwlfi);
+rho_dd      = rad.rho_dd(:,iwlfi);
 R_dd        = rad.R_dd(:,iwlfi);
-tau_dd      = rad.tau_dd(iwlfi);
-vb          = rad.vb(iwlfi);
-vf          = rad.vf(iwlfi);
+tau_dd      = rad.tau_dd(:,iwlfi);
+vb          = rad.vb(:,iwlfi);
+vf          = rad.vf(:,iwlfi);
 
 %% 0.2 geometric quantities
 
@@ -181,21 +185,21 @@ Femmin      =   iLAI*bsxfun(@times,Qs', Fsmin) +iLAI* bsxfun(@times,(1-Qs)',Fdmi
 Femplu      =   iLAI*bsxfun(@times,Qs', Fsplu) +iLAI*bsxfun(@times,(1-Qs)',Fdplu);
 
 for j=nl:-1:1      % from bottom to top
-    Y(j,:)  =(rho_dd'.*U(j+1,:)+Femmin(:,j)')./(1-rho_dd'.*R_dd(j+1,:));
-    U(j,:) =tau_dd'.*(R_dd(j+1,:).*Y(j,:)+U(j+1,:))+Femplu(:,j)';
+    Y(j,:)  =(rho_dd(j,:).*U(j+1,:)+Femmin(:,j)')./(1-rho_dd(j,:).*R_dd(j+1,:));
+    U(j,:) =tau_dd(j,:).*(R_dd(j+1,:).*Y(j,:)+U(j+1,:))+Femplu(:,j)';
 end
 
 for j=1:nl          % from top to bottom
     Fmin_(j+1,:)  = Xdd(j,:).*Fmin_(j,:)+Y(j,:);
     Fplu_(j,:)  = R_dd(j,:).*Fmin_(j,:)+U(j,:);
 end
-piLo1     = iLAI*piLs*Pso(1:nl);
-piLo2     = iLAI*piLd*(Po(1:nl)-Pso(1:nl));
-piLo3     = iLAI*(repmat(vb,1,length(layers)).*Fmin_(layers,:)'  + repmat(vf,1,length(layers)).*Fplu_(layers,:)')*Po(1:nl);
-piLo4     = rs .* Fmin_(nl+1,:)' * Po(nl+1);
+piLo1     = iLAI*Cv*piLs*Pso(1:nl);
+piLo2     = iLAI*Cv*piLd*(Po(1:nl)-Pso(1:nl));
+piLo3     = iLAI*(vb.*Fmin_(layers,:)  + vf.*Fplu_(layers,:))'*Po(1:nl);
+piLo4     = rs .* (Fod +Fcd*Po(end)* Fmin_(end,:)');
 piLtot      = piLo1 + piLo2 + piLo3 + piLo4;
 LoF_        = piLtot/pi;
-Fhem_       = Fplu_(1,:)';
+Fhem_       = Fplu_(1,:)'*Cs;
 
 %% output
 rad.Lo_(iwlfi)          = rad.Lo_(iwlfi) + LoF_;

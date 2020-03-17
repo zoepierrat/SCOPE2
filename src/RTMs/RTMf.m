@@ -1,4 +1,4 @@
-function rad = RTMf(constants,spectral,rad,soil,leafopt,canopy,gap,angles,etau,etah)
+function rad = RTMf_c(constants,spectral,rad,soil,leafopt,canopy,gap,angles,etau,etah)
 
 % function 'RTMf' calculates the spectrum of fluorescent radiance in the
 % observer's direction and also the TOC spectral hemispherical upward Fs flux
@@ -21,7 +21,9 @@ function rad = RTMf(constants,spectral,rad,soil,leafopt,canopy,gap,angles,etau,e
 %                                   all. with the function bsxfun, the
 %                                   calculation is much faster
 % Update:   Oct 2017-Feb 2018 PY    Re-write the RTM of fluorescence
-% Update:   Jan 2020 CvdT           Modified to include 'lite' option
+% Update:   Jan 2020 CvdT           Modified to include 'lite' option,
+%                                   mSCOPE representation
+% Update:   17 Mar 2020 CvdT        added clumping
 
 % Table of contents of the function:
 %   0       preparations
@@ -31,7 +33,7 @@ function rad = RTMf(constants,spectral,rad,soil,leafopt,canopy,gap,angles,etau,e
 %       0.3     solar irradiance factor and ext. in obs dir for all leaf angle/azumith classes
 %   1.0     calculation of fluorescence flux in observation direction
 %
-% Usage: [rad] = RTMfH(constants,spectral,rad,soil,leafopt,canopy,gap,angles,etau,etah)
+% Usage: [rad] = RTMf(constants,spectral,rad,soil,leafopt,canopy,gap,angles,etau,etah)
 %
 % The input and output are structures. These structures are further
 % specified in a readme file.
@@ -62,7 +64,11 @@ wlE          =   (400:5:750)'; %spectral.wlE';    % Excitation wavelengths
 [dummy,iwlfo]    = intersect(wlS,wlF); %#ok<ASGLU>
 nf           = length(iwlfo);
 nl           = canopy.nlayers;
-LAI          = canopy.LAI;
+LAI          = gap.LAI_Cv;
+Cv           = canopy.Cv;
+Cs           = gap.Cs;
+Fod          = gap.Fod;
+Fcd          = gap.Fcd;
 litab        = canopy.litab;
 lazitab      = canopy.lazitab;
 lidf         = canopy.lidf;
@@ -91,11 +97,11 @@ Epluf_             = rad.Eplu_(:,iwlfi)';
 iLAI               = LAI/nl;                       % LAI of a layer        [1]
 
 Xdd         = rad.Xdd(:,iwlfo);
-rho_dd      = rad.rho_dd(iwlfo);
+rho_dd      = rad.rho_dd(:,iwlfo);
 R_dd        = rad.R_dd(:,iwlfo);
-tau_dd      = rad.tau_dd(iwlfo);
-vb          = rad.vb(iwlfo);
-vf          = rad.vf(iwlfo);
+tau_dd      = rad.tau_dd(:,iwlfo);
+vb          = rad.vb(:,iwlfo);
+vf          = rad.vf(:,iwlfo);
 
 %% 0.2 geometric quantities
 Mb                = leafopt.Mb;
@@ -211,30 +217,31 @@ Femmin      =   iLAI*bsxfun(@times,Qs', Fsmin) +iLAI* bsxfun(@times,(1-Qs)',Fdmi
 Femplu      =   iLAI*bsxfun(@times,Qs', Fsplu) +iLAI* bsxfun(@times,(1-Qs)',Fdplu);
 
 for j=nl:-1:1      % from bottom to top
-    Y(j,:)  =(rho_dd'.*U(j+1,:)+Femmin(:,j)')./(1-rho_dd'.*R_dd(j+1,:));
-    U(j,:) =tau_dd'.*(R_dd(j+1,:).*Y(j,:)+U(j+1,:))+Femplu(:,j)';
+    Y(j,:)  =(rho_dd(j,:).*U(j+1,:)+Femmin(:,j)')./(1-rho_dd(j,:).*R_dd(j+1,:));
+    U(j,:) =tau_dd(j,:).*(R_dd(j+1,:).*Y(j,:)+U(j+1,:))+Femplu(:,j)';
 end
 
 for j=1:nl          % from top to bottom
     Fmin_(j+1,:)  = Xdd(j,:).*Fmin_(j,:)+Y(j,:);
     Fplu_(j,:)  = R_dd(j,:).*Fmin_(j,:)+U(j,:);
 end
-piLo1     = iLAI*piLs*Pso(1:nl);
-piLo2     = iLAI*piLd*(Po(1:nl)-Pso(1:nl));
-piLo3     = iLAI*(repmat(vb,1,length(layers)).*Fmin_(layers,:)'  + repmat(vf,1,length(layers)).*Fplu_(layers,:)')*Po(1:nl);
-piLo4     = rs .* Fmin_(nl+1,:)' * Po(nl+1);
+piLo1     = iLAI*Cv*piLs*Pso(1:nl);
+piLo2     = iLAI*Cv*piLd*(Po(1:nl)-Pso(1:nl));
+piLo3     = iLAI*Cv*(vb.*Fmin_(layers,:)  + vf.*Fplu_(layers,:))'*Po(1:nl);
+piLo4     = rs .* (Fod +Fcd*Po(end)* Fmin_(end,:)');
 piLtot      = piLo1 + piLo2 + piLo3 + piLo4;
 LoF_        = piLtot/pi;
-Fhem_       = Fplu_(1,:)';
+Fhem_       = Fplu_(1,:)'*Cs;
 
 rad.LoF_    = interp1(wlF,LoF_,spectral.wlF','splines');
 rad.EoutF_   = interp1(wlF,Fhem_,spectral.wlF','splines');
+
 rad.LoF_sunlit      = interp1(wlF,piLo1/pi,spectral.wlF','splines');
 rad.LoF_shaded      = interp1(wlF,piLo2/pi,spectral.wlF','splines');
 rad.LoF_scattered   = interp1(wlF,piLo3/pi,spectral.wlF','splines');
 rad.LoF_soil        = interp1(wlF,piLo4/pi,spectral.wlF','splines');
 
-rad.EoutF   = 0.001 * Sint(Fhem_,wlF);
+rad.EoutF   = 0.001 * Sint(Fhem_,wlF)*Cs;
 rad.LoutF   = 0.001 * Sint(LoF_,wlF);
 
 [rad.F685,iwl685]  = max(rad.LoF_(1:55));

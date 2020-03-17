@@ -1,5 +1,5 @@
 function [rad] = RTMt_sb(constants,rad,soil,leafbio,canopy,gap,Tcu,Tch,Tsu,Tsh,obsdir,spectral)
-         
+
 % function 'RTMt_sb' calculates total outgoing radiation in hemispherical
 % direction and total absorbed radiation per leaf and soil component.
 % Radiation is integrated over the whole thermal spectrum with
@@ -19,30 +19,31 @@ function [rad] = RTMt_sb(constants,rad,soil,leafbio,canopy,gap,Tcu,Tch,Tsu,Tsh,o
 %           16 Mar 2009 CvdT    removed Tbright calculation
 %              Feb 2013 WV      introduces structures for version 1.40
 %           04 Dec 2019 CvdT    adapted for SCOPE-lite
+%           17 Mar 2020 CvdT    mSCOPE representation, added clumping
 %
 % Table of contents of the function
 %   0       preparations
 %       0.0     globals
 %       0.1     initialisations
-%       0.2     parameters       
+%       0.2     parameters
 %       0.3     geometric factors of Observer
 %       0.4     geometric factors associated with extinction and scattering
 %       0.5     geometric factors to be used later with rho and tau
 %       0.6     fo for all leaf angle/azumith classes
-%   1       calculation of upward and downward fluxes          
+%   1       calculation of upward and downward fluxes
 %   2       total net fluxes
 %   Appendix A. Stefan-Boltzmann
 %
 % usage:
-% [rad] = RTMt_sbRTMt_sb(constants,rad,soil,leafbio,canopy,gap,Tcu,Tch,Tsu,Tsh,obsdir,spectral)
-%         
+% [rad] = RTMt_sb(constants,rad,soil,leafbio,canopy,gap,Tcu,Tch,Tsu,Tsh,obsdir,spectral)
+%
 % Most input and output are structures. These structures are further
 % specified in a readme file. The temperatures Tcu, Tch, Tsu and Tsh are
 % variables.
 %
 % Input:
 %   constants   physical constants
-%   rad         a large number of radiative fluxes: spectrally distributed 
+%   rad         a large number of radiative fluxes: spectrally distributed
 %               and integrated, and canopy radiative transfer coefficients
 %   soil        soil properties
 %   leafopt     leaf optical properties
@@ -54,7 +55,7 @@ function [rad] = RTMt_sb(constants,rad,soil,leafbio,canopy,gap,Tcu,Tch,Tsu,Tsh,o
 %   Tsh         Temperature of shaded soil      (oC), [1]
 %
 % Output:
-%   rad         a large number of radiative fluxes: spectrally distributed 
+%   rad         a large number of radiative fluxes: spectrally distributed
 %               and integrated, and canopy radiative transfer coefficients.
 %               Here, thermal fluxes are added
 
@@ -69,19 +70,25 @@ tau         = leafbio.tau_thermal;    % [1]               Leaf/needle transmissi
 rs          = soil.rs_thermal;        % [1]               Soil reflectance
 epsc        = 1-rho-tau;              % [nwl]               Emissivity vegetation
 epss        = 1-rs;                   % [nwl]               Emissivity soil
-crit        = max(1E-4);              % [1]                 Desired minimum accuracy
-LAI         = canopy.LAI;
+LAI         = gap.LAI_Cv;
 dx          = 1/nl;
 iLAI        = LAI*dx;
+Cv          = canopy.Cv;
+Cs          = gap.Cs;
+Fos         = gap.Fos;
+Fod         = gap.Fod;
+Fcs         = gap.Fcs;
+Fcd         = gap.Fcd;
+
+Xdd         = rad.Xdd(:,end);
+Xsd         = rad.Xsd(:,end);
+Xss         = repmat(rad.Xss,canopy.nlayers,1);
+R_dd        = rad.R_dd(:,end);
+R_sd        = rad.R_sd(:,end);
+rho_dd      = rad.rho_dd(:,end);
+tau_dd      = rad.tau_dd(:,end);
 
 %% 1. calculation of upward and downward fluxes pag 305
-
-rinf        = rad.rinf(end);% [nwlt]              Reflection coefficient for infinite thick canopy    
-fHs         = rad.fHs(end);
-fHc         = rad.fHc(end);
-fbottom     = rad.fbottom(end);
-rinf2       = rinf*rinf;          % [nwlt]
-m           = rad.m(end);
 
 %1.1 radiance by components
 Hcsu3       = epsc*Stefan_Boltzmann(Tcu,constants);%                   Radiance by sunlit leaves
@@ -101,47 +108,45 @@ Hc          = Hcsu.*Ps(1:nl) + Hcsh.*(1-Ps(1:nl));      % hemispherical emittanc
 Hs          = Hssu.*Ps(nl+1) + Hssh.*(1-Ps(nl+1));      % hemispherical emittance by soil surface
 
 % 1.3 Diffuse radiation
-cont        = 1;                                        % continue iteration (1:yes, 0:no)
-counter     = 0;                                        % number of iterations
-F1          = zeros(nl+1,1);
-F2          = zeros(nl+1,1);
-F1top       = 0;
-while cont
-    F1(1)   = F1top;
-    for j   = 1:nl
-        F1(j+1) = F1(j)*(1-m*iLAI)+ fHc*Hc(j);
-    end
-    F2(nl+1) = fbottom*F1(nl+1) + fHs*Hs;
-    for j   = nl:-1:1
-        F2(j)   = F2(j+1)*(1-m*iLAI) + fHc*Hc(j);
-    end
-    F1topn  = -rinf*F2(1);
-    cont    = abs(F1topn-F1top)>crit;
-    F1top   = F1topn;
-    counter = counter + 1;
-end
+[U,Es_,Emin,Eplu]           = deal(zeros(nl+1,1));       % [nl+1,nwl]     direct, up and down diff. rad.
 
-Emin        = (F1+rinf*F2)/(1-rinf2);
-Eplu        = (F2+rinf*F1)/(1-rinf2);
-Eoutte      = Eplu(1)-Emin(1); % 1)
+U(nl+1)               =   Hs;
+Es_(1)              =   0;
+Emin(1)            =   0;
+
+for j=nl:-1:1      % from bottom to top
+    Y(j)  =   (rho_dd(j).*U(j+1)+Hc(j)*iLAI)./(1-rho_dd(j).*R_dd(j+1));
+    U(j)  =   tau_dd(j)*(R_dd(j+1).*Y(j)+U(j+1))+Hc(j)*iLAI;
+end
+for j=1:nl       % from top to bottom
+    Es_(j+1)    = Xss(j).*Es_(j);
+    Emin(j+1)   = Xsd(j).*Es_(j)+Xdd(j).*Emin(j)+Y(j);
+    Eplu(j)     = R_sd(j).*Es_(j)+R_dd(j).*Emin(j)+U(j);
+end
+Eplu(nl+1)      = R_sd(nl).*Es_(nl)+R_dd(nl).*Emin(nl)+Hs;
+Eoutte          = Eplu(1)*Cs + (1-Cs)*Hssu;
 
 % 1.4 Directional radiation and brightness temperature
 if obsdir
     K           = gap.K;
     vb          = rad.vb(end);
     vf          = rad.vf(end);
-    piLo1       = iLAI*K*Hcsh'*(gap.Po(1:nl)-gap.Pso(1:nl));                % directional   emitted     radation by shaded leaves
-    piLo2       = iLAI*K*Hcsu'*gap.Pso(1:nl); % compute column means for each level
-    piLo3       = iLAI*((vb*Emin(1:nl) + vf*Eplu(1:nl))'*gap.Po(1:nl));      % directional   scattered   radiation by vegetation for diffuse incidence
-    piLo4       = Hssh*(gap.Po(nl+1)-gap.Pso(nl+1));                        % directional   emitted     radiation by shaded soil
-    piLo5       = Hssu*gap.Pso(nl+1);                                   % directional   emitted     radiation by sunlit soil
-    piLo6       = rs*Emin(nl+1)*gap.Po(nl+1);                                % directional   scattered   radiation by soil       for diffuse incidence       [1] 
-    piLot       = piLo1 + sum(piLo2) + piLo3 + piLo4 + piLo5 + piLo6;
+    piLov       = Cv*iLAI*...
+        (K*Hcsh'*(gap.Po(1:nl)-gap.Pso(1:nl))+  ...              % directional   emitted     radation by shaded leaves
+        K*Hcsu'*gap.Pso(1:nl)+ ... % compute column means for each level
+        (vb*Emin(1:nl) + vf*Eplu(1:nl))'*gap.Po(1:nl));      % directional   scattered   radiation by vegetation for diffuse incidence
+    
+    piLos       = Fcd*(Hssh*(gap.Po(nl+1)-gap.Pso(nl+1))+ Hssu*gap.Pso(nl+1)) +...                        % directional   emitted     radiation by shaded soil
+        Fcs*Hssu*gap.Po(nl+1)+...                                   % directional   emitted     radiation by sunlit soil
+        Fos*Hssu + ...
+        Fod * ( (1-Ps(end))*Hssh +Ps(end)*Hssu);
+    
+    piLot       = piLov + piLos;
     Tbr         = (piLot/constants.sigmaSB)^0.25;
     rad.Lote    = piLot/pi;
     rad.Lot_    = Planck(spectral.wlS,Tbr);% Note that this is the directional blackbody radiance!
-    Tbr2        = ((Eplu(1)-Emin(1))/constants.sigmaSB)^0.25;
-    rad.Eoutte_ = Planck(spectral.wlS,Tbr2); 
+    Tbr2        = (Eoutte/constants.sigmaSB)^0.25;
+    rad.Eoutte_ = Planck(spectral.wlS,Tbr2);
 end
 
 %% 2. total net fluxes
@@ -170,8 +175,8 @@ rad.Rnust   = Rnus;
 rad.Rnhst   = Rnhs;
 return
 
-% 1) CvdT, 11 December 2015. 
-% We subtract Emin(1), because ALL incident (thermal) radiation from Modtran 
+% 1) CvdT, 11 December 2015.
+% We subtract Emin(1), because ALL incident (thermal) radiation from Modtran
 % has been taken care of in RTMo. Not ideal but otherwise radiation budget will not close!
 
 %% Appendix A. Stefan-Boltzmann

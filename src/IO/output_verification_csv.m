@@ -25,7 +25,7 @@ function output_verification_csv(Output_dir, verification_dir)
 % Directory = Output_dir
 
 %% load verification data
-path0_ = ['..' filesep 'data' filesep 'output' filesep verification_dir filesep];
+path0_ = ['output' filesep verification_dir filesep];
 path1_ = [Output_dir filesep];
 
 info0   = dir([path0_ filesep '*.csv']);         %'standard' validation data (to compare with)
@@ -73,13 +73,13 @@ for i = 1:L
                 if spn>7
                     nr = min(size(D1, 1), size(D0, 1));
                     for z = 1:nr
-                        plot(D0(z,:)'), hold on, plot(D1(z,:)','r')
+                        plot(D0(z,:)','k'), hold on, plot(D1(z,:)','r')
                     end
                     title(info0(i).name)
                 else
                     for m = 1:size(D0,2)
                         subplot(spn,spn,m)
-                        plot(D0(:,m)), hold on, plot(D1(:,m),'r')
+                        plot(D0(:,m),'k'), hold on, plot(D1(:,m),'r')
                         title([info0(i).name h0(m)])
                     end
                 end

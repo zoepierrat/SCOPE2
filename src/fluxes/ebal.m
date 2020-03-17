@@ -152,12 +152,14 @@ while CONT                          % while energy balance does not close
     % 2.1. Net radiation of the components
     % Thermal radiative transfer model for vegetation emission (with Stefan-Boltzman's equation)
     rad  = RTMt_sb(constants,rad,soil,leafbio,canopy,gap,Tcu,Tch,Ts(2),Ts(1),0);
-    
     Rnhc    = rad.Rnhc + rad.Rnhct;             %           Canopy (shaded) net radiation
     Rnuc    = rad.Rnuc + rad.Rnuct;             %           Canopy (sunlit) net radiation
     Rnhs    = rad.Rnhs+rad.Rnhst;             %           Soil   (sun+sh) net radiation
     Rnus    = rad.Rnus+rad.Rnust;
     Rns     = [Rnhs Rnus]';
+    
+ %    rad2  = RTMt_sb(constants,rad,soil,leafbio,canopy,gap,Tcu,Tch,Ts(2),Ts(1),0);
+ % keyboard
     
     % 2.2. Aerodynamic roughness
     % calculate friction velocity [m s-1] and aerodynamic resistances [s m-1]
