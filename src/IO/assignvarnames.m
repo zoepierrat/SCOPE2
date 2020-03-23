@@ -64,5 +64,7 @@ V(61).Name                  = 'BSMBrightness';
 V(62).Name                  = 'BSMlat';
 V(63).Name                  = 'BSMlon';
 V(64).Name                  = 'BallBerry0'; % acccidentally left out of v1.7
+V(65).Name                  = 'Cv'; % acccidentally left out of v1.7
+V(66).Name                  = 'crowndiameter'; % acccidentally left out of v1.7
 
 end

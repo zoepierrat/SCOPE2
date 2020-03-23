@@ -53,6 +53,9 @@ canopy.rwc  = V(45).Val(vi(45));
 canopy.kV = V(12).Val(vi(12));
 canopy.zo  = V(24).Val(vi(24));
 canopy.d = V(25).Val(vi(25));
+canopy.Cv = V(65).Val(vi(65));
+canopy.crowndiameter = V(66).Val(vi(66));
+
 
 meteo.z  = V(29).Val(vi(29));
 meteo.Rin   = V(30).Val(vi(30));

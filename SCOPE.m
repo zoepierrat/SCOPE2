@@ -29,10 +29,6 @@ addpath src/supporting
 addpath src/fluxes
 addpath src/IO 
 
-%% the following should be inputs...-> Egor
-canopy.crowndiameter = 1;
-canopy.Cv = 1;
-
 %% 1. define constants
 constants = define_constants;
 

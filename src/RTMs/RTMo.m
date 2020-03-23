@@ -232,7 +232,6 @@ rsd     = R_sd(1,:)'* Cs + (1-Cs)*rs;
 [Emin_,Eplu_] = calc_fluxprofile(Esun_,Esky_,rs,Xss,Xsd,Xdd,R_sd,R_dd,nl,nwl);
 
 %%
-keyboard
 % 1.5 probabilities Ps, Po, Pso
 Ps          =   exp(k*xl*LAI);                                              % [nl+1]  p154{1} probability of viewing a leaf in solar dir
 Po          =   exp(K*xl*LAI); 
