@@ -250,8 +250,10 @@ for k = 1:telmax
         leafbio.emis        = 1-leafbio.rho_thermal-leafbio.tau_thermal;
         leafbio.V2Z         = 0;
         
-        if ~options.mSCOPE && k > 1
-           warning('I do not know layers in this %d composition', k) 
+        if k > 1
+           if options.mSCOPE
+                warning('I do not know how to use mSCOPE layers in this %d composition', k)
+           end
            mly.nly        = 1;
            mly.pLAI        = canopy.LAI;
            mly.totLAI      = canopy.LAI;
