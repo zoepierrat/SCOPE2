@@ -100,3 +100,4 @@ end
 canopy.hot  = canopy.leafwidth/canopy.hc;
 [canopy.zo,canopy.d ]  = zo_and_d(soil,canopy,constants);
 leafbio.fqe = fqe;
+end

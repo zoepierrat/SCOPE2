@@ -157,12 +157,12 @@ Mmin = 0.5*(Mb-Mf);    % [nwlfo,nwlfi]
 % in-products: we convert incoming radiation to a fluorescence spectrum using the matrices.
 
 for j = 1:nl
-    MpluEmin(:,j)   = Mplu* Eminf_(:,j);          % [nwlfo,nl+1]
-    MpluEplu(:,j)   = Mplu* Epluf_(:,j);          % [nwlfo,nl+1]
-    MminEmin(:,j)   = Mmin* Eminf_(:,j);          % [nwlfo,nl+1]
-    MminEplu(:,j)   = Mmin* Epluf_(:,j);          % [nwlfo,nl+1]
-    MpluEsun(:,j)   = Mplu* Esunf_;               % integration by inproduct
-    MminEsun(:,j)   = Mmin* Esunf_;               % integration by inproduct
+    MpluEmin(:,j)   = Mplu(:,:,j)* Eminf_(:,j);          % [nwlfo,nl+1]
+    MpluEplu(:,j)   = Mplu(:,:,j)* Epluf_(:,j);          % [nwlfo,nl+1]
+    MminEmin(:,j)   = Mmin(:,:,j)* Eminf_(:,j);          % [nwlfo,nl+1]
+    MminEplu(:,j)   = Mmin(:,:,j)* Epluf_(:,j);          % [nwlfo,nl+1]
+    MpluEsun(:,j)   = Mplu(:,:,j)* Esunf_;               % integration by inproduct
+    MminEsun(:,j)   = Mmin(:,:,j)* Esunf_;               % integration by inproduct
 end
 
 laz= 1/36;

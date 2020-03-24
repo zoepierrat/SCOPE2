@@ -122,12 +122,9 @@ theta   = crownd / (canopy.hc/2);   % crown shape factor
 dx      = 1/nl;
 LAI     = LAIeff/Cv;
 
-kChlrel =   repmat(leafopt.kChlrel,1,nl);
-rho     =   repmat(leafopt.refl,1,nl); % REPLACE when layer-input ready
-tau     =   repmat(leafopt.tran,1,nl); % REPLACE when layer-input ready
-rho     =   permute(rho,[2,1]);
-tau     =   permute(tau,[2,1]);
-kChlrel     =   permute(kChlrel,[2,1]);
+rho = leafopt.refl;
+tau = leafopt.tran;
+kChlrel = leafopt.kChlrel;
 rs      =   soil.refl;          % [nwl,nsoils] soil reflectance spectra
 epsc    =   1-rho-tau;          % [nl,nwl]        emissivity of leaves
 epss    =   1-rs;              % [nwl]        emissivity of soil
