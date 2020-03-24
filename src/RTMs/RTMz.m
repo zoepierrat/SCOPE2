@@ -43,8 +43,8 @@ nlinc        = length(litab);           % inclination
 nlori        = nlinc * nlazi;           % total number of leaf orientations
 layers       = 1:nl;
 
-RZ          = leafopt.reflZ(iwlfi)-leafopt.refl(iwlfi);
-TZ          = leafopt.tranZ(iwlfi)-leafopt.tran(iwlfi);
+RZ          = (leafopt.reflZ(:, iwlfi)-leafopt.refl(:, iwlfi))';
+TZ          = (leafopt.tranZ(:, iwlfi)-leafopt.tran(:, iwlfi))';
 
 Ps           = gap.Ps;
 Po           = gap.Po;
@@ -108,10 +108,14 @@ ctl2                = reshape(ctl2,nlori,1);                                    
 
 %% 1.0 calculation of 'flux' in observation direction
 [U,Fmin_,Fplu_] =deal(zeros(nl+1,length(spectral.wlZ)));
-MpluEmin  = (RZ*ones(1,nl)) .* Eminf_(:,1:nl);	    % [nf,nl+1]  = (nf,ne) * (ne,nl+1)
-MpluEplu  = (RZ*ones(1,nl))  .* Epluf_(:,1:nl);
-MminEmin  = (TZ*ones(1,nl))  .* Eminf_(:,1:nl);
-MminEplu  = (TZ*ones(1,nl))  .* Epluf_(:,1:nl);
+% MpluEmin  = (RZ*ones(1,nl)) .* Eminf_(:,1:nl);	    % [nf,nl+1]  = (nf,ne) * (ne,nl+1)
+% MpluEplu  = (RZ*ones(1,nl))  .* Epluf_(:,1:nl);
+% MminEmin  = (TZ*ones(1,nl))  .* Eminf_(:,1:nl);
+% MminEplu  = (TZ*ones(1,nl))  .* Epluf_(:,1:nl);
+MpluEmin  = (RZ) .* Eminf_(:,1:nl);	    % [nf,nl+1]  = (nf,ne) * (ne,nl+1)
+MpluEplu  = (RZ)  .* Epluf_(:,1:nl);
+MminEmin  = (TZ)  .* Eminf_(:,1:nl);
+MminEplu  = (TZ)  .* Epluf_(:,1:nl);
 
 MpluEsun  = RZ .* Esunf_;      %
 MminEsun  = TZ .* Esunf_;
