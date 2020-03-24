@@ -29,10 +29,6 @@ addpath src/supporting
 addpath src/fluxes
 addpath src/IO 
 
-%% the following should be inputs...-> Egor
-canopy.crowndiameter = 1;
-canopy.Cv = 1;
-
 %% 1. define constants
 constants = define_constants;
 
@@ -59,7 +55,8 @@ options.Fluorescence_model  = N(6);     %0: empirical, with sustained NPQ (fit t
 options.apply_T_corr        = N(7);     % correct Vcmax and rate constants for temperature in biochemical.m
 options.verify              = N(8);
 options.saveCSV             = N(9);
-options.simulation          = N(10);    % 0: individual runs (specify all input in a this file)
+options.mSCOPE              = N(10);
+options.simulation          = N(11);    % 0: individual runs (specify all input in a this file)
 % 1: time series (uses text files with meteo input as time series)
 % 2: Lookup-Table (specify the values to be included)
 % 3: Lookup-Table with random input (specify the ranges of values)
@@ -158,6 +155,10 @@ for i = 1:length(V)
     end
 end
 
+%% mSCOPE
+if options.mSCOPE
+    mly = input_mSCOPE('input/mSCOPE.csv');
+end
 
 %% 6. Load spectral data for leaf and soil
 load([path_input,'fluspect_parameters/', F(3).FileName]);
@@ -248,17 +249,31 @@ for k = 1:telmax
         %% leaf radiative transfer model FLUSPECT
         leafbio.emis        = 1-leafbio.rho_thermal-leafbio.tau_thermal;
         leafbio.V2Z         = 0;
-        leafopt             = fluspect_B_CX(spectral,leafbio,optipar);
-        leafopt.refl        = interp1(spectral.wlP,leafopt.refl,spectral.wlS,'nearest',leafbio.rho_thermal);
-        leafopt.tran        = interp1(spectral.wlP,leafopt.tran,spectral.wlS,'nearest',leafbio.tau_thermal);
+        
+        if options.mSCOPE && k > 1
+           warning('I do not know layers in this %d composition', k) 
+           mly.nly        = 1;
+           mly.pLAI        = canopy.LAI;
+           mly.totLAI      = canopy.LAI;
+           mly.pCab        = leafbio.Cab;
+           mly.pCca        = leafbio.Cca;
+           mly.pCdm        = leafbio.Cdm;
+           mly.pCw         = leafbio.Cw;
+           mly.pCs         = leafbio.Cs;
+           mly.pN          = leafbio.N;
+        end
+        
+        leafopt = fluspect_mSCOPE(mly,spectral,leafbio,optipar, nl); 
+        leafopt.refl(:, spectral.IwlT) = leafbio.rho_thermal;               
+        leafopt.tran(:, spectral.IwlT) = leafbio.tau_thermal;
         
         if options.calc_xanthophyllabs
             leafbio.V2Z     = 1;
-            leafoptZ        = fluspect_B_CX(spectral,leafbio,optipar);
+            leafoptZ = fluspect_mSCOPE(mly,spectral,leafbio,optipar, nl); 
             leafopt.reflZ   = leafopt.refl;
             leafopt.tranZ   = leafopt.tran;
-            leafopt.reflZ(spectral.IwlP) = leafoptZ.refl(spectral.IwlP);
-            leafopt.tranZ(spectral.IwlP) = leafoptZ.tran(spectral.IwlP);
+            leafopt.reflZ(:, spectral.IwlP) = leafoptZ.refl(:, spectral.IwlP);
+            leafopt.tranZ(:, spectral.IwlP) = leafoptZ.tran(:, spectral.IwlP);
         end
         
         %% soil reflectance model BSM
@@ -267,7 +282,7 @@ for k = 1:telmax
         else
             soil.refl       = BSM(soil,optipar,soilemp);
         end
-        soil.refl       = interp1(spectral.wlP,soil.refl,spectral.wlS,'nearest',soil.rs_thermal);
+        soil.refl(spectral.IwlT) = soil.rs_thermal;
         
         %% four stream canopy radiative transfer model for incident radiation
         [rad,gap]       = RTMo(spectral,atmo,soil,leafopt,canopy,angles,constants,meteo,options);

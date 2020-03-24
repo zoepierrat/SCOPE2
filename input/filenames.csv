@@ -4,6 +4,7 @@ The_following_three_are_always_required,
 Simulation_Name,SCOPE_FLEX_standard
 optipar_file,Optipar2017_ProspectD.mat
 atmos_file,FLEX-S3_std.atm
+soil_file,soilnew.txt
 ,
 The_following_are_only_for_the_time_series_option!,
 Dataset_dir,LatinHypercube
@@ -18,7 +19,7 @@ ea_file,
 u_file,
 ,
 optional,
-verification_dir,SCOPE_FLEX_standard_2020-02-18-1047
+verification_dir,verification
 soil_file,
 CO2_file,
 z_file,

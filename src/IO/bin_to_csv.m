@@ -178,3 +178,7 @@ for k = 1:ns
 end
 clear('Esky_out');
 fclose('all');
+
+%% deleting .bin
+delete(fullfile(Output_dir, '*.bin'))
+end
