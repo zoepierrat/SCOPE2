@@ -250,7 +250,8 @@ for k = 1:telmax
         leafbio.emis        = 1-leafbio.rho_thermal-leafbio.tau_thermal;
         leafbio.V2Z         = 0;
         
-        if k > 1
+        if k == 1 && options.mSCOPE
+        else
            if options.mSCOPE
                 warning('I do not know how to use mSCOPE layers in this %d composition', k)
            end
