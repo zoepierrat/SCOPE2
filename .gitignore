@@ -1,3 +1,4 @@
 *.asv
 output/
 mSCOPE_simulated_reflectance.csv
+*.fig

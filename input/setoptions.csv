@@ -2,10 +2,10 @@
 1,calc_fluor
 1,calc_planck
 1,calc_xanthophyllabs
-0,soilspectrum
+1,soilspectrum
 1,Fluorescence_model
 0,applTcorr
-0,verify
+1,verify
 1,saveCSV
 0,mSCOPE
 0,simulation
