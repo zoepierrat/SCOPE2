@@ -25,9 +25,9 @@ function [V, xyt]  = load_timeseries(V, F, xyt, path_input)
         t_ = datestr(datenum(year_n, 0, t_), 'yyyymmddHHMMSS.FFF');
     end
     
-    t_ = io.timestamp2datetime(t_);
-    xyt.startDOY = io.timestamp2datetime(xyt.startDOY);
-    xyt.endDOY = io.timestamp2datetime(xyt.endDOY);
+    t_ = timestamp2datetime(t_);
+    xyt.startDOY = timestamp2datetime(xyt.startDOY);
+    xyt.endDOY = timestamp2datetime(xyt.endDOY);
     year_n = year(t_);
     
     %% filtering
@@ -46,7 +46,7 @@ function [V, xyt]  = load_timeseries(V, F, xyt, path_input)
             'TreatAsEmpty', {'.','NA','N/A'});
         t_int = df_int.(t_column);
         if any(t_int > 367)
-            t_int = io.timestamp2datetime(t_int);
+            t_int = timestamp2datetime(t_int);
         end
         assert(min(t_) >= min(t_int) & max(t_) <= max(t_int), '`interpolation_csv` timestamp is outside `ec_file_berkeley` timestamp')
         interpolatable_cols = df_int.Properties.VariableNames;
@@ -94,7 +94,7 @@ function [V, xyt]  = load_timeseries(V, F, xyt, path_input)
     %% ea calculation
     if ~any(strcmp(f_ids, 'ea')) && any(strcmp(f_ids, 'Ta'))  % ea wasn't read but Ta was
         ta = V(strcmp(v_names, 'Ta')).Val;
-        es = equations.satvap(ta);
+        es = satvap(ta);
         vi_ea = strcmp(v_names, 'ea');
         rh_column = F(strcmp({F.FileID}, 'RH')).FileName;
         vpd_column = F(strcmp({F.FileID}, 'VPD')).FileName;

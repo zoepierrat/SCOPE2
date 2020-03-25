@@ -213,7 +213,7 @@ end
 
 
 %% 13. create output files
-[Output_dir,f] = create_output_files_binary(parameter_file, F, path_of_code, path_input, spectral,options);
+[Output_dir, f, fnames] = create_output_files_binary(parameter_file, F, path_of_code, path_input, spectral,options);
 
 %% 14. Run the models
 fprintf('\n The calculations start now \r')
@@ -359,7 +359,7 @@ for k = 1:telmax
         canopy.reflectance     = pi*rad.Lo_./(rad.Esun_+rad.Esky_);
 
         %% write output
-        output_data_binary(f,k, xyt, rad,  canopy,V, vi, vmax,options)
+        n_col = output_data_binary(f,k, xyt, rad, canopy,V, vi, vmax,options);
         
         %% update input
         if options.simulation==2 && telmax>1, vi  = count(nvars,vi,vmax,1); end
@@ -367,7 +367,7 @@ for k = 1:telmax
 end
 toc
 if options.saveCSV
-    bin_to_csv(Output_dir,V,vmax)
+    bin_to_csv(fnames, V, vmax, n_col, telmax)
 end
 fclose('all');
 
