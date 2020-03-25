@@ -65,12 +65,25 @@ n_col.Esky = length(rad.Esky_);
 fwrite(f.Esky_file, rad.Esky_, 'double');
 
 %% pars
+% k2 = find(vmax>1);  % really needed for the first one, later vi > 1
+% V_short = nan(1,length(k2)+1);
+% V_short(1) = length(k2);
+% for i = 1:length(k2)
+%     V_short(i+1) = V(k2(i)).Val(vi(k2(i)));
+% end
+% n_col.pars = length(V_short);
+% fwrite(f.pars_file, V_short,'double');
+
+
 k2 = find(vmax>1);  % really needed for the first one, later vi > 1
 V_short = nan(1,length(k2)+1);
 V_short(1) = length(k2);
+names = fieldnames(V);
 for i = 1:length(k2)
-    V_short(i+1) = V(k2(i)).Val(vi(k2(i)));
+    V_short(i+1) = V.(names{k2(i)})(vi(k2(i)));
 end
 n_col.pars = length(V_short);
 fwrite(f.pars_file, V_short,'double');
+
+
 end

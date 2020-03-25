@@ -1,5 +1,7 @@
 function [soil,leafbio,canopy,meteo,angles,xyt,temperatures] = select_input(V,vi,canopy,options,constants,xyt,soil)
 
+% vi_s = table2struct(array2table(vi, 'VariableNames', fieldnames(V))
+
 soil.spectrum      = V(16).Val(vi(16));
 soil.rss           = V(17).Val(vi(17));
 soil.rs_thermal    = V(18).Val(vi(18));

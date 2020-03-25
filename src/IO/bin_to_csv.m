@@ -1,7 +1,9 @@
 function bin_to_csv(fnames, V, vmax, n_col, ns)
 
 %% pars
-write_output(['n_pars', {V(vmax>1).Name}], {''}, fnames.pars_file, n_col.pars, ns)
+names = fieldnames(V)';
+write_output(['n_pars', names(vmax>1)], {''}, fnames.pars_file, n_col.pars, ns)
+% write_output(['n_pars', {V(vmax>1).Name}], {''}, fnames.pars_file, n_col.pars, ns)
 
 %% veg
 veg_names = {'simulation_number', 'year', 'DoY', 'aPAR', 'aPARbyCab', 'aPARbyCab(energyunits)', 'Photosynthesis', 'Electron_transport', 'NPQ_energy', 'LST'};

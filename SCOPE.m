@@ -95,65 +95,27 @@ end
 fclose(fid);
 
 %% 4. input data
-k = 1;
-fid = fopen([path_input parameter_file{1}{3}], 'r');
-clear('X')
-while ~feof(fid)
-    line    = fgetl(fid);
-    y       = textscan(line,'%s', 'Delimiter', ',', 'TreatAsEmpty',  ' ');
-    varnames(k)  = string(y{1}{1}); %#ok<SAGROW>
-    X(k).Val   = str2double(y{:});
-    k       = k+1;
-end
-fclose(fid);
-V                           = assignvarnames();
 
-for i = 1:length(V)
-    j = find(strcmp(varnames,V(i).Name));
-    if isempty(j)
-        if i==2
-            fprintf(1,'%s %s %s \n','warning: input "', V(i).Name, '" not provided in input data...');
-            fprintf(1,'%s %s %s\n', 'I will use 0.25*Cab instead');
-            options.Cca_function_of_Cab = 1;
-        else
-            if ~(options.simulation==1) && (i==30 || i==32)
-                fprintf(1,'%s %s %s \n','warning: input "', V(i).Name, '" not provided in input data...');
-                fprintf(1,'%s %s %s\n', 'I will use the MODTRAN spectrum as it is');
-            else
-                if (options.simulation == 1 || (~options.simulation && (i<46 || i>50 ))) && i<65
-                    fprintf(1,'%s %s %s \n','warning: input "', V(i).Name, '" not provided in input data');
-                    if (options.simulation ==1 && (i==1 ||i==9||i==22||i==23||i==54 || (i>29 && i<37)))
-                        fprintf(1,'%s %s %s\n', 'I will look for the values in Dataset Directory "',F(5).FileName,'"');
-                    else
-                        if (i== 24 || i==25)
-                            fprintf(1,'%s %s %s\n', 'will estimate it from LAI, CR, CD1, Psicor, and CSSOIL');
-                            options.calc_zo = 1;
-                        else
-                            if (i>38 && i<44)
-                                fprintf(1,'%s %s %s\n', 'will use the provided zo and d');
-                                options.calc_zo = 0;
-                            else
-                                if ~((options.simulation ==1 && (i==30 ||i==32)))
-                                    fprintf(1,'%s \n', 'this input is required: SCOPE ends');
-                                    return
-                                elseif (options.simulation ==1 && (i==30 ||i==32))
-                                    fprintf(1,'%s %s %s\n', '... no problem, I will find it in Dataset Directory "',F(5).FileName, '"');
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    else
-        k = find(~isnan(X(j).Val));
-        if ~isempty(k)
-            V(i).Val = X(j).Val(k);
-        else
-            V(i).Val            = -999;
-        end
+% inputdata_csv = fullfile(path_input, parameter_file{1}{3});
+% [V, options] = christiaans_v(inputdata_csv, options);
+
+tic; z=readtable([path_input parameter_file{1}{3}]); toc;
+var_names = z.PROSPECT;
+z.PROSPECT = [];
+z_mat = table2array(z);  % fails if str is there
+for i=1:length(var_names)
+    v = var_names{i};
+    if isempty(v)
+        continue
     end
+    vals = z_mat(i, :);
+    vals = vals(~isnan(vals));
+    if isempty(vals)
+        continue
+    end
+    V.(v) = vals;
 end
+    
 
 %% mSCOPE
 if options.mSCOPE
@@ -191,16 +153,21 @@ else
 end
 
 %% 12. preparations
-nvars = length(V);
-vmax = cellfun(@length, {V.Val})';
-vmax([14,27],1) = 1; % these are Tparam and LIDFb
-vi      = ones(nvars,1);
+% nvars = length(V);
+% vmax = cellfun(@length, {V.Val})';
+% vmax([14,27],1) = 1; % these are Tparam and LIDFb
+% vi      = ones(nvars,1);
+vmax = structfun(@length, V);
+vmax(strcmp('Tparam', fieldnames(V))) = 1;
+vmax(strcmp('LIDFb', fieldnames(V))) = 1;
+vi = ones(size(vmax));
+
 switch options.simulation
     case 0, telmax = max(vmax);  [xyt.t,xyt.year]= deal(zeros(telmax,1));
     case 1, telmax = size(xyt.t,1);
     case 2, telmax  = prod(double(vmax)); [xyt.t,xyt.year]= deal(zeros(telmax,1));
 end
-[rad,thermal,fluxes] = initialize_output_structures(spectral);
+% [rad,thermal,fluxes] = initialize_output_structures(spectral);
 
 atmfile     = [path_input 'radiationdata/' F(4).FileName];
 if strcmp(F(4).FileName(end-3:end),'.atm')
@@ -223,7 +190,7 @@ tic
 for k = 1:telmax
     if options.simulation == 1, vi(vmax>1) = k; end
     if options.simulation == 0, vi(vmax==telmax) = k; end
-    [soil,leafbio,canopy,meteo,angles,xyt] = select_input(V,vi,canopy,options,constants,xyt,soil);
+    [soil,leafbio,canopy,meteo,angles,xyt] = select_input_my2(V,vi,canopy,options,constants,xyt,soil);
     canopy.nlayers  = ceil(10*canopy.LAI/canopy.Cv);
     nl              = canopy.nlayers;
 	x        = (-1/nl : -1/nl : -1)';         % a column vector
