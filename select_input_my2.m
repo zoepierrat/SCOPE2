@@ -44,7 +44,7 @@ leafbio.stressfactor  = V.stressfactor(vi.stressfactor);
 canopy.LAI  = max(1E-9, V.LAI(vi.LAI));
 canopy.hc  = V.hc(vi.hc);
 canopy.LIDFa = V.LIDFa(vi.LIDFa);
-canopy.LIDFb  = V.LIDFb(vi.LIDFb);
+canopy.LIDFb  = V.LIDFb(vi.LIDFa);  % because we set vmax.LIDFb == 1
 canopy.leafwidth  = V.leafwidth(vi.leafwidth);
 canopy.rb   = V.rb(vi.rb);
 canopy.Cd  = V.Cd(vi.Cd);

@@ -96,8 +96,8 @@ fclose(fid);
 
 %% 4. input data
 
-% inputdata_csv = fullfile(path_input, parameter_file{1}{3});
-% [V, options] = christiaans_v(inputdata_csv, options);
+inputdata_csv = fullfile(path_input, parameter_file{1}{3});
+% [V_ch, options] = christiaans_v(inputdata_csv, options);
 
 tic; z=readtable([path_input parameter_file{1}{3}]); toc;
 var_names = z.PROSPECT;
@@ -156,11 +156,13 @@ end
 % nvars = length(V);
 % vmax = cellfun(@length, {V.Val})';
 % vmax([14,27],1) = 1; % these are Tparam and LIDFb
-% vi      = ones(nvars,1);
+% vi_ch      = ones(nvars,1);
 vmax = structfun(@length, V);
 vmax(strcmp('Tparam', fieldnames(V))) = 1;
-vmax(strcmp('LIDFb', fieldnames(V))) = 1;
+vmax(strcmp('LIDFb', fieldnames(V))) = 1;  % why?
 vi = ones(size(vmax));
+
+% [soil_ch,leafbio_ch,canopy_ch,meteo_ch,angles_ch,xyt_ch] = select_input(V_ch,vi_ch,canopy,options,constants,xyt,soil);
 
 switch options.simulation
     case 0, telmax = max(vmax);  [xyt.t,xyt.year]= deal(zeros(telmax,1));
