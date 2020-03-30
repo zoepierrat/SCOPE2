@@ -1,4 +1,4 @@
-function [V, xyt, mly_ts]  = load_timeseries(V, F, xyt, path_input)
+function [V, xyt, mly_ts, atmo_paths]  = load_timeseries(V, F, xyt, path_input)
     
     %% filenames
     Dataset_dir = ['dataset ' F(5).FileName];
@@ -8,7 +8,8 @@ function [V, xyt, mly_ts]  = load_timeseries(V, F, xyt, path_input)
 
     t_column = F(strcmp({F.FileID}, 't')).FileName;
     year_column = F(strcmp({F.FileID}, 'year')).FileName;
-
+    atmo_column = F(strcmp({F.FileID}, 'atmos_names')).FileName;
+    
     %% read berkeley format dataset
     df = readtable(fullfile(path_input, Dataset_dir, meteo_ec_csv), ...
         'TreatAsEmpty', {'.','NA','N/A'});
@@ -89,6 +90,11 @@ function [V, xyt, mly_ts]  = load_timeseries(V, F, xyt, path_input)
     end
 
     %% special cases
+    %% Irradiance files
+    atmo_paths = [];
+    if ~isempty(atmo_column)
+        atmo_paths = fullfile(path_input, Dataset_dir, df_sub.(atmo_column));
+    end
     %% tts calculation
     if ~any(strcmp(f_ids, 'tts'))  % tts wasn't read
         vi_tts = strcmp(v_names, 'tts');

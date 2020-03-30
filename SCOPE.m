@@ -73,6 +73,7 @@ cols = {'t', 'year', 'Rin','Rli', 'p','Ta','ea','u','RH', 'VPD', 'tts','tto', 'p
     'LAI', 'hc', 'LIDFa', 'LIDFb',...  % canopy
     'z','Ca', ...  % meteo
     'Vcmo', 'm',...  % biochemistry;
+    'atmos_names' 
     };
 
 fnc = [f_names, cols];
@@ -181,7 +182,7 @@ end
 if options.simulation == 1
     vi = ones(length(V),1);
     [soil,leafbio,canopy,meteo,angles,xyt]  = select_input(V,vi,canopy,options,constants);
-    [V, xyt, mly_ts]  = load_timeseries(V, F, xyt, path_input);
+    [V, xyt, mly_ts, atmo_paths]  = load_timeseries(V, F, xyt, path_input);
 else
     soil = struct;
 end
@@ -198,15 +199,12 @@ switch options.simulation
 end
 [rad,thermal,fluxes] = initialize_output_structures(spectral);
 
-atmfile     = [path_input 'radiationdata/' F(4).FileName];
-if strcmp(F(4).FileName(end-3:end),'.atm')
-    atmo.M      = aggreg(atmfile,spectral.SCOPEspec);
-else
-    raddata = load(atmfile);
-    atmo.Esun_ = raddata(:,1);
-    atmo.Esky_ = raddata(:,2);
+%% irradiance
+atmfile = fullfile(path_input, 'radiationdata', F(4).FileName);
+if ~isempty(atmo_paths)
+    atmfile = atmo_paths{1};
 end
-
+atmo = load_atmo(atmfile, spectral.SCOPEspec);
 
 %% 13. create output files
 [Output_dir, f, fnames] = create_output_files_binary(parameter_file, F, path_of_code, path_input, spectral,options);
@@ -260,17 +258,24 @@ for k = 1:telmax
            mly = input_mSCOPE('input/mSCOPE.csv');
         else
            if options.mSCOPE
-                warning('I do not know how to use mSCOPE layers in this %d composition', k)
+                warning('I do not know how to use mSCOPE layers with multiple but non time series runs, so I will not use it')
            end
-           mly.nly        = 1;
-           mly.pLAI        = canopy.LAI;
-           mly.totLAI      = canopy.LAI;
-           mly.pCab        = leafbio.Cab;
-           mly.pCca        = leafbio.Cca;
-           mly.pCdm        = leafbio.Cdm;
-           mly.pCw         = leafbio.Cw;
-           mly.pCs         = leafbio.Cs;
-           mly.pN          = leafbio.N;
+           mly.nly      = 1;
+           mly.pLAI     = canopy.LAI;
+           mly.totLAI   = canopy.LAI;
+           mly.pCab     = leafbio.Cab;
+           mly.pCca     = leafbio.Cca;
+           mly.pCdm     = leafbio.Cdm;
+           mly.pCw      = leafbio.Cw;
+           mly.pCs      = leafbio.Cs;
+           mly.pN       = leafbio.N;
+        end
+        
+        if ~isempty(atmo_paths) && k > 1
+            atmfile_k = atmo_paths{k};
+            if ~strcmp(atmfile_k, atmo_paths{k-1})
+                atmo = load_atmo(atmfile_k, spectral.SCOPEspec);
+            end
         end
         
         leafopt = fluspect_mSCOPE(mly,spectral,leafbio,optipar, nl); 
