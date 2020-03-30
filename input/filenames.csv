@@ -6,6 +6,9 @@ optipar_file,Optipar2017_ProspectD.mat
 atmos_file,FLEX-S3_std.atm
 soil_file,soilnew.txt
 ,
+mSCOPE_csv,input_mSCOPE_timeseries.csv
+nly,3
+,
 The_following_are_only_for_the_time_series_option!,
 Dataset_dir,LatinHypercube
 meteo_ec_csv,input.csv

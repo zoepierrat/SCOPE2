@@ -8,4 +8,4 @@
 1,verify
 1,saveCSV
 0,mSCOPE
-0,simulation
+1,simulation

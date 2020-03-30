@@ -65,7 +65,8 @@ if options.simulation>2 || options.simulation<0, fprintf('\n simulation option s
 
 %% 3. file names
 f_names = {'Simulation_Name','soil_file','optipar_file','atmos_file', 'Dataset_dir',...
-    'meteo_ec_csv', 'vegetation_retrieved_csv', 'LIDF_file', 'verification_dir'};  % must be in this order
+    'meteo_ec_csv', 'vegetation_retrieved_csv', 'LIDF_file', 'verification_dir', ...
+    'mSCOPE_csv', 'nly'};  % must be in this order
 cols = {'t', 'year', 'Rin','Rli', 'p','Ta','ea','u','RH', 'VPD', 'tts','tto', 'psi' ...  % expected from EC file as well as ('Ca','SMC')
     'Cab','Cca','Cdm','Cw','Cs','Cant','N',...  % leaf
     'SMC','BSMBrightness', 'BSMlat', 'BSMlon',...  % soil
@@ -155,11 +156,6 @@ for i = 1:length(V)
     end
 end
 
-%% mSCOPE
-if options.mSCOPE
-    mly = input_mSCOPE('input/mSCOPE.csv');
-end
-
 %% 6. Load spectral data for leaf and soil
 load([path_input,'fluspect_parameters/', F(3).FileName]);
 if options.soilspectrum ==0
@@ -185,7 +181,7 @@ end
 if options.simulation == 1
     vi = ones(length(V),1);
     [soil,leafbio,canopy,meteo,angles,xyt]  = select_input(V,vi,canopy,options,constants);
-    [V, xyt]  = load_timeseries(V, F, xyt, path_input);
+    [V, xyt, mly_ts]  = load_timeseries(V, F, xyt, path_input);
 else
     soil = struct;
 end
@@ -250,7 +246,18 @@ for k = 1:telmax
         leafbio.emis        = 1-leafbio.rho_thermal-leafbio.tau_thermal;
         leafbio.V2Z         = 0;
         
-        if k == 1 && options.mSCOPE
+        if ~isempty(fieldnames(mly_ts))  % means that options.simulation == 1 
+           mly.nly    = mly_ts.nly;
+           mly.pLAI   = mly_ts.pLAI(k, :);
+           mly.totLAI = sum(mly.pLAI);
+           mly.pCab   = mly_ts.pCab(k, :);
+           mly.pCca   = mly_ts.pCca(k, :);
+           mly.pCdm   = mly_ts.pCw(k, :);
+           mly.pCw    = mly_ts.pCw(k, :);
+           mly.pCs    = mly_ts.pCs(k, :);
+           mly.pN     = mly_ts.pN(k, :);
+        elseif k == 1 && options.mSCOPE
+           mly = input_mSCOPE('input/mSCOPE.csv');
         else
            if options.mSCOPE
                 warning('I do not know how to use mSCOPE layers in this %d composition', k)
