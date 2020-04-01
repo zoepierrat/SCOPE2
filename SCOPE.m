@@ -201,7 +201,7 @@ end
 
 %% irradiance
 atmfile = fullfile(path_input, 'radiationdata', F(4).FileName);
-if ~isempty(atmo_paths)
+if options.simulation == 1 && ~isempty(atmo_paths)
     atmfile = atmo_paths{1};
 end
 atmo = load_atmo(atmfile, spectral.SCOPEspec);
@@ -244,7 +244,7 @@ for k = 1:telmax
         leafbio.emis        = 1-leafbio.rho_thermal-leafbio.tau_thermal;
         leafbio.V2Z         = 0;
         
-        if ~isempty(fieldnames(mly_ts))  % means that options.simulation == 1 
+        if options.simulation == 1 && ~isempty(fieldnames(mly_ts))  % means that options.simulation == 1 
            mly.nly    = mly_ts.nly;
            mly.pLAI   = mly_ts.pLAI(k, :);
            mly.totLAI = sum(mly.pLAI);
@@ -271,7 +271,7 @@ for k = 1:telmax
            mly.pN       = leafbio.N;
         end
         
-        if ~isempty(atmo_paths) && k > 1
+        if options.simulation == 1 && ~isempty(atmo_paths) && k > 1
             atmfile_k = atmo_paths{k};
             if ~strcmp(atmfile_k, atmo_paths{k-1})
                 atmo = load_atmo(atmfile_k, spectral.SCOPEspec);
@@ -384,5 +384,5 @@ end
 fclose('all');
 
 if options.verify
-    output_verification_csv( Output_dir, F(9).FileName)
+    output_verification_csv(Output_dir, F(9).FileName)
 end

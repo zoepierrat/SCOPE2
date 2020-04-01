@@ -2,3 +2,5 @@
 output/
 mSCOPE_simulated_reflectance.csv
 *.fig
+*.xlsx
+src/supporting/lh2inputdata.m
