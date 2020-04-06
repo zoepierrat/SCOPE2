@@ -224,10 +224,11 @@ rho_dd = sigb.*iLAI;
 rdd     = R_dd(1,:)'* Cv + (1-Cv)*rs;
 rsd     = R_sd(1,:)'* Cs + (1-Cs)*rs;
 [Esun_,Esky_] = calcTOCirr(atmo,meteo,rdd,rsd,wl,nwl);
-%Esun_ = 0*Esun_;
-%Esky_ = 0*Esky_;
-[Emin_,Eplu_] = calc_fluxprofile(Esun_,Esky_,rs,Xss,Xsd,Xdd,R_sd,R_dd,nl,nwl);
 
+[Emins_,Eplus_] = calc_fluxprofile(Esun_,0*Esky_,rs,Xss,Xsd,Xdd,R_sd,R_dd,nl,nwl);
+[Emind_,Eplud_] = calc_fluxprofile(0*Esun_,Esky_,rs,Xss,Xsd,Xdd,R_sd,R_dd,nl,nwl);
+Emin_ = Emins_+Emind_;
+Eplu_ = Eplus_+Eplud_;
 %%
 % 1.5 probabilities Ps, Po, Pso
 Ps          =   exp(k*xl*LAI);                                              % [nl+1]  p154{1} probability of viewing a leaf in solar dir
@@ -252,21 +253,42 @@ Fos = (1 - Co) * (1 - Cs) + overlap; % sunlit, outside canopy, visible
     
 %%
 % 3.3 outgoing fluxes, hemispherical and in viewing direction, spectrum
-% hemispherical, spectral
+% in viewing direction, spectral due to diffuse light
 
-% in viewing direction, spectral
-piLoc_      = (sum(vb.*Po(1:nl).*Emin_(1:nl,:)) +...
-              sum(vf.*Po(1:nl).*Eplu_(1:nl,:))+...
+% vegetation contribution
+piLocd_     = (sum(vb.*Po(1:nl).*Emind_(1:nl,:)) +...
+              sum(vf.*Po(1:nl).*Eplud_(1:nl,:)))'*iLAI*Cv;
+% soil contribution          
+piLosd_     = rs.* ...
+    (Fos * (Esky_) + ...
+     Fod * (Emind_(end,:)'+Ps(end)) + ...
+     Fcs * Esky_*Po(end) + ...
+     Fcd * (Emind_(end,:)'*Po(end))); 
+
+% in viewing direction, spectral due to direct solar light
+% vegetation contribution
+piLocu_     = (sum(vb.*Po(1:nl).*Emins_(1:nl,:)) +...
+              sum(vf.*Po(1:nl).*Eplus_(1:nl,:))+...
               sum(w.*Pso(1:nl).*Esun_'))'*iLAI*Cv;
-piLos_      = rs.* ...
-    (Fos * (Esky_+Esun_) + ...
-     Fod * (Emin_(end,:)'+Ps(end)*Esun_) + ...
-     Fcs * (Esky_+Esun_)*Po(end) + ...
-     Fcd * (Emin_(end,:)'*Po(end) + Esun_*Pso(end)));  
-piLo_       = piLoc_ + piLos_;              %           [nwl]
-Lo_         = piLo_/pi;
-Refl        = piLo_./(Esky_+Esun_); % rso and rdo are not computed separately
-          
+
+% soil contribution
+piLosu_     = rs.* ...
+    (Fos * Esun_ + ...
+     Fod * (Emins_(end,:)'+Ps(end)*Esun_) + ...
+     Fcs * Esun_*Po(end) + ...
+     Fcd * (Emins_(end,:)'*Po(end) + Esun_*Pso(end))); 
+
+piLod_      = piLocd_ + piLosd_;        % [nwl] piRad in obsdir from Esky
+piLou_      = piLocu_ + piLosu_;        % [nwl] piRad in obsdir from Eskun
+piLoc_      = piLocu_ + piLocd_;        % [nwl] piRad in obsdir from vegetation
+piLos_      = piLosu_ + piLosd_;        % [nwl] piRad in obsdir from soil
+
+piLo_       = piLoc_ + piLos_;          % [nwl] piRad in obsdir
+Lo_         = piLo_/pi;                 % [nwl] Rad in obsdir
+Refl        = piLo_./(Esky_+Esun_);     % [nwl] rso and rdo are not computed separately 
+
+rso         = piLou_./Esun_;            % [nwl] obsdir reflectance of solar beam
+rdo         = piLod_./Esky_;            % [nlw] obsir refectlance of sky irradiance
 
 %% 4. net fluxes, spectral and total, and incoming fluxes
 %4.1 incident PAR at the top of canopy, spectral and spectrally integrated
@@ -370,12 +392,10 @@ Rnhs        = Rndifsoil;  % [1] shaded soil
 
 %% 5 Model output
 % up and down and hemispherical out, cumulative over wavelenght
-%Eout_       = Eplu_(1,:)';
 Eout_       = Eplu_(1,:)'*Cs + (1-Cs)*rs.*(Esun_+Esky_);
-
-Eouto       = 0.001 * Sint(Eout_(spectral.IwlP),spectral.wlP);   %     [1] hemispherical out, in optical range (W m-2)
-Eoutt       = 0.001 * Sint(Eout_(spectral.IwlT),spectral.wlT);   %     [1] hemispherical out, in thermal range (W m-2)
-Lot         = 0.001 * Sint(Lo_(spectral.IwlT),spectral.wlT);   %     [1] hemispherical out, in thermal range (W m-2)
+Eouto       = 0.001 * Sint(Eout_(spectral.IwlP),spectral.wlP);  %     [1] hemispherical out, in optical range (W m-2)
+Eoutt       = 0.001 * Sint(Eout_(spectral.IwlT),spectral.wlT);  %     [1] hemispherical out, in thermal range (W m-2)
+Lot         = 0.001 * Sint(Lo_(spectral.IwlT),spectral.wlT);    %     [1] hemispherical out, in thermal range (W m-2)
 
 % place output in structure rad
 gap.k       = k;        % extinction cofficient in the solar direction
@@ -384,9 +404,9 @@ gap.Ps      = Ps;       % gap fraction in the solar direction
 gap.Po      = Po;       % gap fraction in the viewing direction
 rad.rsd     = rsd;      % TOC directional-hemispherical reflectance
 rad.rdd     = rdd;      % TOC hemispherical-hemispherical reflectance
-%rad.rdo     = Refl;     % TOC hemispherical-directional reflectance %not computed
-rad.rso     = Refl;     % TOC directional-directional reflectance   %not computed
-%rad.refl    = Refl;     % TOC reflectance
+rad.rdo     = rdo;      % TOC hemispherical-directional reflectance 
+rad.rso     = rso;      % TOC directional-directional reflectance   
+rad.refl    = Refl;     % TOC reflectance
 rad.rho_dd  = rho_dd;   % diffuse-diffuse reflectance for the thin layers
 rad.tau_dd  = tau_dd;   % diffuse-diffuse transmittance for the thin layers
 rad.rho_sd  = rho_sd;   % direct-diffuse reflectance for the thin layers
@@ -394,32 +414,28 @@ rad.tau_ss  = tau_ss;   % direct-direct transmittance for the thin layers
 rad.tau_sd  = tau_sd;   % direct-diffuse transmittance for the thin layers
 rad.R_sd    = R_sd;
 rad.R_dd    = R_dd;
-
 rad.vb      = vb;       % directional backscatter coefficient for diffuse incidence
 rad.vf      = vf;       % directional forward scatter coefficient for diffuse incidence
 rad.sigf    = sigf;     % forward scatter coefficient for specular flux
 rad.sigb    = sigb;     % backscatter coefficient for specular flux
-
-rad.Esun_   = Esun_;    % [2162x1 double]   incident solar spectrum (mW m-2 um-1)
-rad.Esky_   = Esky_;    % [2162x1 double]   incident sky spectrum (mW m-2 um-1)
+rad.Esun_   = Esun_;    % [nwlx1 double]   incident solar spectrum (mW m-2 um-1)
+rad.Esky_   = Esky_;    % [nwlx1 double]   incident sky spectrum (mW m-2 um-1)
 rad.PAR     = P;        % [1 double]        incident spectrally integrated PAR (moles m-2 s-1)
-
-%rad.Eplu_   = Eplu_;   % [61x2162 double]  upward diffuse radiation in the canopy (mW m-2 um-1)
-%rad.Emin_   = Emin_;   % [61x2162 double]  downward diffuse radiation in the canopy (mW m-2 um-1)
-rad.Eplu_   = Eplu_;
-rad.Emin_   = Emin_;
-
-rad.Lo_     = Lo_;      % [2162x1 double]   TOC radiance in observation direction (mW m-2 um-1 sr-1)
-rad.Eout_   = Eout_;    % [2162x1 double]   TOC upward radiation (mW m-2 um-1)
-rad.Eouto   = Eouto;        % [1 double]        TOC spectrally integrated upward optical ratiation (W m-2)
-rad.Eoutt   = Eoutt;        % [1 double]        TOC spectrally integrated upward thermal ratiation (W m-2)
+rad.Eplu_   = Eplu_;    % [nlxnwl double]  upward diffuse radiation in the canopy (mW m-2 um-1)
+rad.Emin_   = Emin_;    % [nlxnwl double]  downward diffuse radiation in the canopy (mW m-2 um-1)
+rad.Emins_  = Emins_;   % [nlxnwl double]  downward diffuse radiation in the canopy due to direct solar rad (mW m-2 um-1)
+rad.Emind_  = Emind_;   % [nlxnwl double]  downward diffuse radiation in the canopy due to sky rad (mW m-2 um-1)
+rad.Eplus_  = Eplus_;   % [nlxnwl double]  upward diffuse radiation in the canopy due to direct solar rad (mW m-2 um-1)
+rad.Eplud_  = Eplud_;   % [nlxnwl double]  upward diffuse radiation in the canopy due to sky rad (mW m-2 um-1)
+rad.Lo_     = Lo_;      % [nwlx1 double]   TOC radiance in observation direction (mW m-2 um-1 sr-1)
+rad.Eout_   = Eout_;    % [nwlx1 double]   TOC upward radiation (mW m-2 um-1)
+rad.Eouto   = Eouto;    % [1 double]        TOC spectrally integrated upward optical ratiation (W m-2)
+rad.Eoutt   = Eoutt;    % [1 double]        TOC spectrally integrated upward thermal ratiation (W m-2)
 rad.Lot     = Lot;
-
 rad.Rnhs    = Rnhs;     % [1 double]        net radiation (W m-2) of shaded soil
 rad.Rnus    = Rnus;     % [1 double]        net radiation (W m-2) of sunlit soil
 rad.Rnhc    = Rnhc;     % [60x1 double]     net radiation (W m-2) of shaded leaves
 rad.Rnuc    = Rnuc;     % [13x36x60 double] net radiation (W m-2) of sunlit leaves
-
 rad.Pnh     = 1E6*Pnhc;     % [60x1 double]     net PAR (moles m-2 s-1) of shaded leaves
 rad.Pnu     = 1E6*Pnuc;     % [13x36x60 double] net PAR (moles m-2 s-1) of sunlit leaves
 rad.Pnh_Cab = 1E6*Pnhc_Cab;% [60x1 double]      net PAR absorbed by Cab (moles m-2 s-1) of shaded leaves
@@ -601,8 +617,8 @@ if ~isfield(atmo,'Esun_')
     % assume Fd of surroundings = 0 for the momemnt
     % initial guess of temperature of surroundings from Ta;
 
-    Esun_   = pi*t1.*t4;
-    Esky_   = pi./(1-t3.*rdd).*(t1.*(t5+t12.*rsd)+Fd+(1-rdd).*Ls.*t3+t16);
+    Esun_   = max(1E-6,pi*t1.*t4);
+    Esky_   = max(1E-6,pi./(1-t3.*rdd).*(t1.*(t5+t12.*rsd)+Fd+(1-rdd).*Ls.*t3+t16));
     
     % fractional contributions of Esun and Esky to total incident radiation in
     % optical and thermal parts of the spectrum

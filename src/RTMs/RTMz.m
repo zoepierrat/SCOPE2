@@ -4,7 +4,7 @@ function [rad] = RTMz(constants,spectral,rad,soil,leafopt,canopy,gap,angles,Knu,
 % radiance due to the conversion of Violaxanthin into Zeaxanthin in leaves
 %
 % Author:  Christiaan van der Tol (c.vandertol@utwente.nl)
-% Date:     08 Dec 2016  
+% Date:     08 Dec 2016
 %           17 Mar 2020     CvdT    added cluming, mSCOPE representation
 %
 % The inputs and outputs are structures. These structures are further
@@ -26,36 +26,41 @@ function [rad] = RTMz(constants,spectral,rad,soil,leafopt,canopy,gap,angles,Knu,
 %               Here, fluorescence fluxes are added
 
 %% 0.1 initialisations
-wlS          = spectral.wlS';       % SCOPE wavelengths, make column vectors
-wlZ          = spectral.wlZ';       % Excitation wavelengths
+wlS         = spectral.wlS';       % SCOPE wavelengths, make column vectors
+wlZ         = spectral.wlZ';       % Excitation wavelengths
 [dummy,iwlfi]    = intersect(wlS,wlZ); %#ok<ASGLU>
-nl           = canopy.nlayers;
-LAI          = gap.LAI_Cv;
-Cv           = canopy.Cv;
-Cs           = gap.Cs;
-Fod          = gap.Fod;
-Fcd          = gap.Fcd;
-litab        = canopy.litab;
-lazitab      = canopy.lazitab;
-lidf         = canopy.lidf;
-nlazi        = length(lazitab);         % azumith angle
-nlinc        = length(litab);           % inclination
-nlori        = nlinc * nlazi;           % total number of leaf orientations
-layers       = 1:nl;
+nl          = canopy.nlayers;
+LAI         = gap.LAI_Cv;
+Cv          = canopy.Cv;
+Cs          = gap.Cs;
+Fod         = gap.Fod;
+Fcd         = gap.Fcd;
+litab       = canopy.litab;
+lazitab     = canopy.lazitab;
+lidf        = canopy.lidf;
+nlazi       = length(lazitab);         % azumith angle
+nlinc       = length(litab);           % inclination
+nlori       = nlinc * nlazi;           % total number of leaf orientations
+layers      = 1:nl;
+nwlZ        = length(spectral.wlZ);
+RZ          = (leafopt.reflZ(:,iwlfi)-leafopt.refl(:,iwlfi))';
+TZ          = (leafopt.tranZ(:,iwlfi)-leafopt.tran(:,iwlfi))';
 
-RZ          = leafopt.reflZ(iwlfi)-leafopt.refl(iwlfi);
-TZ          = leafopt.tranZ(iwlfi)-leafopt.tran(iwlfi);
-
-Ps           = gap.Ps;
-Po           = gap.Po;
-Pso          = gap.Pso;
+Ps          = gap.Ps;
+Po          = gap.Po;
+Pso         = gap.Pso;
 
 Qs          = (Ps(layers)  + Ps(layers+1))/2;
 
 % for speed-up the calculation only uses wavelength i and wavelength o part of the spectrum
 Esunf_             = rad.Esun_(iwlfi);
-Eminf_             = rad.Emin_(:,iwlfi)';          % transpose into [nwlfo,nl] matrix
-Epluf_             = rad.Eplu_(:,iwlfi)';
+[Eminf_,Epluf_]    = deal(zeros(nwlZ,nl+1,2));
+Eminf_(:,:,1)      = rad.Emins_(:,iwlfi)';
+Eminf_(:,:,2)      = rad.Emind_(:,iwlfi)';
+Epluf_(:,:,1)      = rad.Eplus_(:,iwlfi)';
+Epluf_(:,:,2)      = rad.Eplud_(:,iwlfi)';
+%Eminf_             = [rad.Emins_(:,iwlfi)'; rad.Emind_(:,iwlfi)'];          % transpose into [nwlfo,nl] matrix
+%Epluf_             = [rad.Eplus_(:,iwlfi)' rad.Eplud_(:,iwlfi)'];
 iLAI               = LAI/nl;                       % LAI of a layer        [1]
 
 Xdd         = rad.Xdd(:,iwlfi);
@@ -107,21 +112,18 @@ fsctl               = reshape(fsctl,nlori,1);                                   
 ctl2                = reshape(ctl2,nlori,1);                                     % [nlori,1]
 
 %% 1.0 calculation of 'flux' in observation direction
-[U,Fmin_,Fplu_] =deal(zeros(nl+1,length(spectral.wlZ)));
-MpluEmin  = (RZ*ones(1,nl)) .* Eminf_(:,1:nl);	    % [nf,nl+1]  = (nf,ne) * (ne,nl+1)
-MpluEplu  = (RZ*ones(1,nl))  .* Epluf_(:,1:nl);
-MminEmin  = (TZ*ones(1,nl))  .* Eminf_(:,1:nl);
-MminEplu  = (TZ*ones(1,nl))  .* Epluf_(:,1:nl);
+[Fmin_,Fplu_]       = deal(zeros(nl+1,nwlZ,2));
+U                   = zeros(nl+1,nwlZ);
+LoF_                = zeros(nwlZ,2);
+MpluEsun            = RZ .* (Esunf_*ones(1,nl));      %
+MminEsun            = TZ .* (Esunf_*ones(1,nl));
 
-MpluEsun  = RZ .* Esunf_;      %
-MminEsun  = TZ .* Esunf_;
-
-%% I am trying to not use any loop
+%
 laz= 1/36;
 etah = Kn2Cx(Knh);
 
 if size(Knu,2)==1
-    etau = repmat(Kn2Cx(Knu),1,13,36);  
+    etau = repmat(Kn2Cx(Knu),1,13,36);
 else
     etau           = permute(Kn2Cx(Knu),[3 1 2]);    % make dimensions [nl,nlinc,nlazi]
     etau           = reshape(etau,nl,468);    % expand orientations in a vector >> [nl,nlori]
@@ -129,80 +131,82 @@ end
 etau_lidf = bsxfun(@times,reshape(etau,nlori,nl),repmat(lidf*laz,36,1));     %[nlori,nl]
 etah_lidf = bsxfun(@times,repmat(etah,1,nlori)',repmat(lidf*laz,36,1));
 
-wfEs      =  bsxfun(@times,sum(bsxfun(@times,etau_lidf,absfsfo)),MpluEsun) +...
-    bsxfun(@times,sum(bsxfun(@times,etau_lidf,fsfo)),MminEsun);
-
-sfEs     =  bsxfun(@times,sum(bsxfun(@times,etau_lidf,absfs)),MpluEsun) -...
-    bsxfun(@times,sum(bsxfun(@times,etau_lidf,fsctl)),MminEsun);
-
-sbEs     =  bsxfun(@times,sum(bsxfun(@times,etau_lidf,absfs)),MpluEsun) +...
-    bsxfun(@times,sum(bsxfun(@times,etau_lidf,fsctl)),MminEsun);
-
-vfEplu_h  = bsxfun(@times,sum(bsxfun(@times,etah_lidf,absfo)),MpluEplu) -...
-    bsxfun(@times,sum(bsxfun(@times,etah_lidf,foctl)),MminEplu);
-
-vfEplu_u  = bsxfun(@times,sum(bsxfun(@times,etau_lidf,absfo)),MpluEplu) -...
-    bsxfun(@times,sum(bsxfun(@times,etau_lidf,foctl)),MminEplu);
-
-vbEmin_h  = bsxfun(@times,sum(bsxfun(@times,etah_lidf,absfo)),MpluEmin) +...
-    bsxfun(@times,sum(bsxfun(@times,etah_lidf,foctl)),MminEmin);
-
-vbEmin_u  = bsxfun(@times,sum(bsxfun(@times,etau_lidf,absfo)),MpluEmin) +...
-    bsxfun(@times,sum(bsxfun(@times,etau_lidf,foctl)),MminEmin);
-
-sigfEmin_h  = bsxfun(@times,sum(etah_lidf),MpluEmin) -...
-    bsxfun(@times,sum(bsxfun(@times,etah_lidf,ctl2)),MminEmin);
-
-sigfEmin_u  = bsxfun(@times,sum(etau_lidf),MpluEmin) -...
-    bsxfun(@times,sum(bsxfun(@times,etau_lidf,ctl2)),MminEmin);
-
-sigbEmin_h  = bsxfun(@times,sum(etah_lidf),MpluEmin) +...
-    bsxfun(@times,sum(bsxfun(@times,etah_lidf,ctl2)),MminEmin);
-
-sigbEmin_u  = bsxfun(@times,sum(etau_lidf),MpluEmin) +...
-    bsxfun(@times,sum(bsxfun(@times,etau_lidf,ctl2)),MminEmin);
-
-sigfEplu_h  = bsxfun(@times,sum(etah_lidf),MpluEplu) -...
-    bsxfun(@times,sum(bsxfun(@times,etah_lidf,ctl2)),MminEplu);
-
-sigfEplu_u  = bsxfun(@times,sum(etau_lidf),MpluEplu) -...
-    bsxfun(@times,sum(bsxfun(@times,etau_lidf,ctl2)),MminEplu);
-
-sigbEplu_h  = bsxfun(@times,sum(etah_lidf),MpluEplu) +...
-    bsxfun(@times,sum(bsxfun(@times,etah_lidf,ctl2)),MminEplu);
-sigbEplu_u  = bsxfun(@times,sum(etau_lidf),MpluEplu) +...
-    bsxfun(@times,sum(bsxfun(@times,etau_lidf,ctl2)),MminEplu);
-
-%   Emitted fluorescence
-
-piLs        =   wfEs+vfEplu_u+vbEmin_u;         % sunlit for each layer
-piLd        =   vbEmin_h+vfEplu_h;              % shade leaf for each layer
-Fsmin       =   sfEs+sigfEmin_u+sigbEplu_u;     % Eq. 29a for sunlit leaf
-Fsplu       =   sbEs+sigbEmin_u+sigfEplu_u;     % Eq. 29b for sunlit leaf
-Fdmin       =   sigfEmin_h+sigbEplu_h;          % Eq. 29a for shade leaf
-Fdplu       =   sigbEmin_h+sigfEplu_h;          % Eq. 29b for shade leaf
-Femmin      =   iLAI*bsxfun(@times,Qs', Fsmin) +iLAI* bsxfun(@times,(1-Qs)',Fdmin);
-Femplu      =   iLAI*bsxfun(@times,Qs', Fsplu) +iLAI*bsxfun(@times,(1-Qs)',Fdplu);
-
-for j=nl:-1:1      % from bottom to top
-    Y(j,:)  =(rho_dd(j,:).*U(j+1,:)+Femmin(:,j)')./(1-rho_dd(j,:).*R_dd(j+1,:));
-    U(j,:) =tau_dd(j,:).*(R_dd(j+1,:).*Y(j,:)+U(j+1,:))+Femplu(:,j)';
+for k = 1:2
+    MpluEmin  = RZ  .* Eminf_(:,1:nl,k);	    % [nf,nl+1]  = (nf,ne) * (ne,nl+1)
+    MpluEplu  = RZ  .* Epluf_(:,1:nl,k);
+    MminEmin  = TZ  .* Eminf_(:,1:nl,k);
+    MminEplu  = TZ  .* Epluf_(:,1:nl,k);
+    switch k
+        case 1
+            wfEs      =  bsxfun(@times,sum(bsxfun(@times,etau_lidf,absfsfo)),MpluEsun) +...
+                bsxfun(@times,sum(bsxfun(@times,etau_lidf,fsfo)),MminEsun);
+            sfEs     =  bsxfun(@times,sum(bsxfun(@times,etau_lidf,absfs)),MpluEsun) -...
+                bsxfun(@times,sum(bsxfun(@times,etau_lidf,fsctl)),MminEsun);
+            sbEs     =  bsxfun(@times,sum(bsxfun(@times,etau_lidf,absfs)),MpluEsun) +...
+                bsxfun(@times,sum(bsxfun(@times,etau_lidf,fsctl)),MminEsun);           
+        case 2
+            wfEs = wfEs*0;
+            sfEs = sfEs*0;
+            sbEs = sbEs*0;
+    end
+    
+    vfEplu_h  = bsxfun(@times,sum(bsxfun(@times,etah_lidf,absfo)),MpluEplu) -...
+        bsxfun(@times,sum(bsxfun(@times,etah_lidf,foctl)),MminEplu);
+    vfEplu_u  = bsxfun(@times,sum(bsxfun(@times,etau_lidf,absfo)),MpluEplu) -...
+        bsxfun(@times,sum(bsxfun(@times,etau_lidf,foctl)),MminEplu);
+    vbEmin_h  = bsxfun(@times,sum(bsxfun(@times,etah_lidf,absfo)),MpluEmin) +...
+        bsxfun(@times,sum(bsxfun(@times,etah_lidf,foctl)),MminEmin);
+    vbEmin_u  = bsxfun(@times,sum(bsxfun(@times,etau_lidf,absfo)),MpluEmin) +...
+        bsxfun(@times,sum(bsxfun(@times,etau_lidf,foctl)),MminEmin);
+    sigfEmin_h  = bsxfun(@times,sum(etah_lidf),MpluEmin) -...
+        bsxfun(@times,sum(bsxfun(@times,etah_lidf,ctl2)),MminEmin);
+    sigfEmin_u  = bsxfun(@times,sum(etau_lidf),MpluEmin) -...
+        bsxfun(@times,sum(bsxfun(@times,etau_lidf,ctl2)),MminEmin);
+    sigbEmin_h  = bsxfun(@times,sum(etah_lidf),MpluEmin) +...
+        bsxfun(@times,sum(bsxfun(@times,etah_lidf,ctl2)),MminEmin);
+    sigbEmin_u  = bsxfun(@times,sum(etau_lidf),MpluEmin) +...
+        bsxfun(@times,sum(bsxfun(@times,etau_lidf,ctl2)),MminEmin);
+    sigfEplu_h  = bsxfun(@times,sum(etah_lidf),MpluEplu) -...
+        bsxfun(@times,sum(bsxfun(@times,etah_lidf,ctl2)),MminEplu);
+    sigfEplu_u  = bsxfun(@times,sum(etau_lidf),MpluEplu) -...
+        bsxfun(@times,sum(bsxfun(@times,etau_lidf,ctl2)),MminEplu);
+    sigbEplu_h  = bsxfun(@times,sum(etah_lidf),MpluEplu) +...
+        bsxfun(@times,sum(bsxfun(@times,etah_lidf,ctl2)),MminEplu);
+    sigbEplu_u  = bsxfun(@times,sum(etau_lidf),MpluEplu) +...
+        bsxfun(@times,sum(bsxfun(@times,etau_lidf,ctl2)),MminEplu);
+    
+    %   Emitted fluorescence
+    
+    piLs        =   wfEs+vfEplu_u+vbEmin_u;         % sunlit for each layer
+    piLd        =   vbEmin_h+vfEplu_h;              % shade leaf for each layer
+    Fsmin       =   sfEs+sigfEmin_u+sigbEplu_u;     % Eq. 29a for sunlit leaf
+    Fsplu       =   sbEs+sigbEmin_u+sigfEplu_u;     % Eq. 29b for sunlit leaf
+    Fdmin       =   sigfEmin_h+sigbEplu_h;          % Eq. 29a for shade leaf
+    Fdplu       =   sigbEmin_h+sigfEplu_h;          % Eq. 29b for shade leaf
+    Femmin      =   iLAI*bsxfun(@times,Qs', Fsmin) +iLAI* bsxfun(@times,(1-Qs)',Fdmin);
+    Femplu      =   iLAI*bsxfun(@times,Qs', Fsplu) +iLAI*bsxfun(@times,(1-Qs)',Fdplu);
+    
+    for j=nl:-1:1      % from bottom to top
+        Y(j,:)  =(rho_dd(j,:).*U(j+1,:)+Femmin(:,j)')./(1-rho_dd(j,:).*R_dd(j+1,:));
+        U(j,:) =tau_dd(j,:).*(R_dd(j+1,:).*Y(j,:)+U(j+1,:))+Femplu(:,j)';
+    end
+    for j=1:nl          % from top to bottom
+        Fmin_(j+1,:,k)  = Xdd(j,:).*Fmin_(j,:,k)+Y(j,:);
+        Fplu_(j,:,k)  = R_dd(j,:).*Fmin_(j,:,k)+U(j,:);
+    end
+    piLo1     = iLAI*Cv*piLs*Pso(1:nl);
+    piLo2     = iLAI*Cv*piLd*(Po(1:nl)-Pso(1:nl));
+    piLo3     = iLAI*(vb.*Fmin_(layers,:,k)  + vf.*Fplu_(layers,:,k))'*Po(1:nl);
+    piLo4     = rs .* (Fod +Fcd*Po(end)* Fmin_(end,:,k)');
+    piLtot    = piLo1 + piLo2 + piLo3 + piLo4;
+    LoF_(:,k)      = piLtot/pi;
 end
-
-for j=1:nl          % from top to bottom
-    Fmin_(j+1,:)  = Xdd(j,:).*Fmin_(j,:)+Y(j,:);
-    Fplu_(j,:)  = R_dd(j,:).*Fmin_(j,:)+U(j,:);
-end
-piLo1     = iLAI*Cv*piLs*Pso(1:nl);
-piLo2     = iLAI*Cv*piLd*(Po(1:nl)-Pso(1:nl));
-piLo3     = iLAI*(vb.*Fmin_(layers,:)  + vf.*Fplu_(layers,:))'*Po(1:nl);
-piLo4     = rs .* (Fod +Fcd*Po(end)* Fmin_(end,:)');
-piLtot      = piLo1 + piLo2 + piLo3 + piLo4;
-LoF_        = piLtot/pi;
-Fhem_       = Fplu_(1,:)'*Cs;
+Fhem_     = sum(Fplu_(1,:,:),3)'*Cs;
 
 %% output
-rad.Lo_(iwlfi)          = rad.Lo_(iwlfi) + LoF_;
+rad.Lo_(iwlfi)          = rad.Lo_(iwlfi) + sum(LoF_,2);
+rad.rso(iwlfi)          = rad.rso(iwlfi) + LoF_(:,1)./(rad.Esun_(iwlfi));
+rad.rdo(iwlfi)          = rad.rdo(iwlfi) + LoF_(:,2)./(rad.Esky_(iwlfi));
 rad.Eout_(iwlfi)        = rad.Eout_(iwlfi) + Fhem_;
 
 function Cx = Kn2Cx(Kn)

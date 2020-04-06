@@ -1,4 +1,4 @@
-function rad = RTMf_c(constants,spectral,rad,soil,leafopt,canopy,gap,angles,etau,etah)
+function rad = RTMf(constants,spectral,rad,soil,leafopt,canopy,gap,angles,etau,etah)
 
 % function 'RTMf' calculates the spectrum of fluorescent radiance in the
 % observer's direction and also the TOC spectral hemispherical upward Fs flux
