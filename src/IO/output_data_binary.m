@@ -51,6 +51,9 @@ fwrite(f.rdd_file,rad.rdd,'double');
 n_col.rso = length(rad.rso);
 fwrite(f.rso_file,rad.rso,'double');
 
+n_col.rdo = length(rad.rdo);
+fwrite(f.rdo_file,rad.rdo,'double');
+
 %% Radiance
 n_col.Eout = length(rad.Eout_);
 fwrite(f.Eout_file,rad.Eout_,'double');

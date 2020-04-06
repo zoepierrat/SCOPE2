@@ -35,6 +35,7 @@ fnames.r_file                  = fullfile(Output_dir,'reflectance.bin');
 fnames.rsd_file                = fullfile(Output_dir,'rsd.bin');
 fnames.rdd_file                = fullfile(Output_dir,'rdd.bin');
 fnames.rso_file                = fullfile(Output_dir,'rso.bin');
+fnames.rdo_file                = fullfile(Output_dir,'rdo.bin');
 fnames.Eout_file               = fullfile(Output_dir,'Eout_spectrum.bin');
 fnames.Lo_file                 = fullfile(Output_dir,'Lo_spectrum.bin');
 fnames.Esun_file               = fullfile(Output_dir,'Esun.bin');
