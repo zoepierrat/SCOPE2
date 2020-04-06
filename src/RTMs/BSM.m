@@ -70,49 +70,42 @@ function rwet = soilwat(rdry,nw,kw,SMp,SMC,deleff)
     % Version 1.0
     % September 2012
     
-    %---------------------------------------------------------------------%
-    
-    % two-way transmittance of elementary water film
-    
-    tw = exp(-kw * deleff);
+% Peiqi Yang
+% Version 1.1
+% Jan 2020
+% Note by PY (p.yang@utwente.nl)
+% because mu<=2, P(k>6) is negligible
+
+%---------------------------------------------------------------------%
+k       =   0:6;                    % number of water film, '0' refers to dry soil
+nk      =   length(k);              % the number of occurrences
+mu      =   (SMp - 5)/ SMC;         % Mu-parameter of Poisson distribution
+if mu   <=  0                       % the reason for adding this: if mu<0, fry>1.
+    rwet = rdry;                    % we need to check SMC in other parts of SCOPE. soil fluxes routine.
+else
     
     % Lekner & Dorf (1988) modified soil background reflectance
     % for soil refraction index = 2.0; uses the tav-function of PROSPECT
-    
-    rbac = 1 - (1-rdry) .* (rdry .* tav(90,2.0./nw) / tav(90,2.0) + 1-rdry);
+    rbac = 1 - (1-rdry) .* (rdry .* tav(90,2.0./nw) / tav(90,2.0) + 1-rdry); % Rbac
     
     % total reflectance at bottom of water film surface
+    p    = 1 - tav(90,nw) ./ nw.^2;   % rho21, water to air, diffuse
     
-    p    = 1 - tav(90,nw) ./ nw.^2;
-    
-    % reflectance of water film top surface, use 40 degrees incidence angle, 
+    % reflectance of water film top surface, use 40 degrees incidence angle,
     % like in PROSPECT
+    Rw  = 1 - tav(40,nw);             % rho12, air to water, direct
+  
     
-    Rw  = 1 - tav(40,nw);
-    
-    % additional reflectance of single water film (Lekner & Dorf, 1988)
-    % two-way transmission loss by water absorption is not included here
-    % yet
-    
-    Radd   = (1-Rw) .* (1-p) .* rbac ./(1 - p .* rbac);
-    
-    % Mu-parameter of Poisson distribution
-    
-    mu  = (SMp - 5)/ SMC;
-    
-    % fraction of dry soil area
-    
-    fdry = exp(-mu);
-    
-    % contribution due to total water film area of single or 
-    % multiple thickness
-    
-    fmul = (exp(tw * mu) - 1) * diag(fdry);
-    
-    % reflectance spectra of wet soil
-
-    rwet = rdry * fdry + Rw * (1 - fdry) + Radd * ones(size(mu)) .* fmul;
-    
+    % fraction of areas
+    % P(0)   = dry soil area            fmul(1)
+    % P(1)   = single water film area   fmul(2)
+    % P(2)   = double water film area   fmul(3)
+    % without loop
+    fmul    =   poisspdf(k,mu)';                          % Pobability 
+    tw      =   exp(-2*kw * deleff.*k);                   % two-way transmittance,exp(-2*kw*k Delta)
+    Rwet_k  =   Rw + (1-Rw) .* (1-p) .*tw.* rbac ./(1 - p .*tw.* rbac);
+    rwet   =   rdry * fmul(1) + Rwet_k(:,2:nk)*fmul(2:nk);
+end     
 return
 
 function Tav = tav(alfa,nr)

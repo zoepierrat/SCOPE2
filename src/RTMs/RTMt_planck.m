@@ -68,8 +68,8 @@ nl          = canopy.nlayers;
 lidf        = canopy.lidf;
 Ps          = gap.Ps;
 %
-rho         = leafopt.refl(IT)';    % [1]               Leaf/needle reflection
-tau         = leafopt.tran(IT)';    % [1]               Leaf/needle transmission
+rho         = leafopt.refl(:, IT)';    % [1]               Leaf/needle reflection
+tau         = leafopt.tran(:, IT)';    % [1]               Leaf/needle transmission
 rs          = soil.refl(IT);        % [1]               Soil reflectance
 epsc        = 1-rho-tau;              % [nwl]               Emissivity vegetation
 epss        = 1-rs;                   % [nwl]               Emissivity soil

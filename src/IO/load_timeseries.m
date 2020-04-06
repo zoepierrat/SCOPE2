@@ -1,13 +1,15 @@
-function [V, xyt]  = load_timeseries(V, F, xyt, path_input)
+function [V, xyt, mly_ts, atmo_paths]  = load_timeseries(V, F, xyt, path_input)
     
     %% filenames
     Dataset_dir = ['dataset ' F(5).FileName];
     meteo_ec_csv = F(6).FileName;
     vegetation_retrieved_csv  = F(7).FileName;
+    mSCOPE_csv = F(10).FileName;
 
     t_column = F(strcmp({F.FileID}, 't')).FileName;
     year_column = F(strcmp({F.FileID}, 'year')).FileName;
-
+    atmo_column = F(strcmp({F.FileID}, 'atmos_names')).FileName;
+    
     %% read berkeley format dataset
     df = readtable(fullfile(path_input, Dataset_dir, meteo_ec_csv), ...
         'TreatAsEmpty', {'.','NA','N/A'});
@@ -17,17 +19,18 @@ function [V, xyt]  = load_timeseries(V, F, xyt, path_input)
     
     if all(t_ <= 367)  % doy is provided
         %assert(~isempty(year_column), 'Please, provide year in your .csv')
-        if(isempty(year_column)), year_n = 2020; 
+        if(isempty(year_column)) 
+            year_n = 2020; 
         else
-        % then we calculate ts for you
             year_n = df.(year_column);
         end
+        % then we calculate ts for you
         t_ = datestr(datenum(year_n, 0, t_), 'yyyymmddHHMMSS.FFF');
     end
     
-    t_ = io.timestamp2datetime(t_);
-    xyt.startDOY = io.timestamp2datetime(xyt.startDOY);
-    xyt.endDOY = io.timestamp2datetime(xyt.endDOY);
+    t_ = timestamp2datetime(t_);
+    xyt.startDOY = timestamp2datetime(xyt.startDOY);
+    xyt.endDOY = timestamp2datetime(xyt.endDOY);
     year_n = year(t_);
     
     %% filtering
@@ -46,12 +49,21 @@ function [V, xyt]  = load_timeseries(V, F, xyt, path_input)
             'TreatAsEmpty', {'.','NA','N/A'});
         t_int = df_int.(t_column);
         if any(t_int > 367)
-            t_int = io.timestamp2datetime(t_int);
+            t_int = timestamp2datetime(t_int);
         end
-        assert(min(t_) >= min(t_int) & max(t_) <= max(t_int), '`interpolation_csv` timestamp is outside `ec_file_berkeley` timestamp')
+        assert(min(t_int) <= min(t_) & max(t_int) >= max(t_), '`interpolation_csv` timestamp is outside `ec_file_berkeley` timestamp')
         interpolatable_cols = df_int.Properties.VariableNames;
     end
-
+    
+    %% optional mSCOPE file
+    mly_ts = struct();
+    if ~isempty(mSCOPE_csv)
+        mSCOPE_ts_path = fullfile(path_input, Dataset_dir, mSCOPE_csv);
+        nly = str2num(F(11).FileName);
+        mly_ts = load_mSCOPE_ts(mSCOPE_ts_path, nly, t_column, t_);
+        mly_ts.nly = nly;
+    end
+    
     %% make correspondence: F.FileID : index in V struct
     i_empty = cellfun(@isempty, {F.FileName});
     f_ids = {F(~i_empty).FileID};
@@ -78,6 +90,11 @@ function [V, xyt]  = load_timeseries(V, F, xyt, path_input)
     end
 
     %% special cases
+    %% Irradiance files
+    atmo_paths = [];
+    if ~isempty(atmo_column)
+        atmo_paths = fullfile(path_input, Dataset_dir, df_sub.(atmo_column));
+    end
     %% tts calculation
     if ~any(strcmp(f_ids, 'tts'))  % tts wasn't read
         vi_tts = strcmp(v_names, 'tts');
@@ -94,7 +111,7 @@ function [V, xyt]  = load_timeseries(V, F, xyt, path_input)
     %% ea calculation
     if ~any(strcmp(f_ids, 'ea')) && any(strcmp(f_ids, 'Ta'))  % ea wasn't read but Ta was
         ta = V(strcmp(v_names, 'Ta')).Val;
-        es = equations.satvap(ta);
+        es = satvap(ta);
         vi_ea = strcmp(v_names, 'ea');
         rh_column = F(strcmp({F.FileID}, 'RH')).FileName;
         vpd_column = F(strcmp({F.FileID}, 'VPD')).FileName;

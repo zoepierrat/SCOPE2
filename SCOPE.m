@@ -65,13 +65,15 @@ if options.simulation>2 || options.simulation<0, fprintf('\n simulation option s
 
 %% 3. file names
 f_names = {'Simulation_Name','soil_file','optipar_file','atmos_file', 'Dataset_dir',...
-    'meteo_ec_csv', 'vegetation_retrieved_csv', 'LIDF_file', 'verification_dir'};  % must be in this order
+    'meteo_ec_csv', 'vegetation_retrieved_csv', 'LIDF_file', 'verification_dir', ...
+    'mSCOPE_csv', 'nly'};  % must be in this order
 cols = {'t', 'year', 'Rin','Rli', 'p','Ta','ea','u','RH', 'VPD', 'tts','tto', 'psi' ...  % expected from EC file as well as ('Ca','SMC')
     'Cab','Cca','Cdm','Cw','Cs','Cant','N',...  % leaf
     'SMC','BSMBrightness', 'BSMlat', 'BSMlon',...  % soil
     'LAI', 'hc', 'LIDFa', 'LIDFb',...  % canopy
     'z','Ca', ...  % meteo
     'Vcmo', 'm',...  % biochemistry;
+    'atmos_names' 
     };
 
 fnc = [f_names, cols];
@@ -155,11 +157,6 @@ for i = 1:length(V)
     end
 end
 
-%% mSCOPE
-if options.mSCOPE
-    mly = input_mSCOPE('input/mSCOPE.csv');
-end
-
 %% 6. Load spectral data for leaf and soil
 load([path_input,'fluspect_parameters/', F(3).FileName]);
 if options.soilspectrum ==0
@@ -185,7 +182,7 @@ end
 if options.simulation == 1
     vi = ones(length(V),1);
     [soil,leafbio,canopy,meteo,angles,xyt]  = select_input(V,vi,canopy,options,constants);
-    [V, xyt]  = load_timeseries(V, F, xyt, path_input);
+    [V, xyt, mly_ts, atmo_paths]  = load_timeseries(V, F, xyt, path_input);
 else
     soil = struct;
 end
@@ -202,18 +199,15 @@ switch options.simulation
 end
 [rad,thermal,fluxes] = initialize_output_structures(spectral);
 
-atmfile     = [path_input 'radiationdata/' F(4).FileName];
-if strcmp(F(4).FileName(end-3:end),'.atm')
-    atmo.M      = aggreg(atmfile,spectral.SCOPEspec);
-else
-    raddata = load(atmfile);
-    atmo.Esun_ = raddata(:,1);
-    atmo.Esky_ = raddata(:,2);
+%% irradiance
+atmfile = fullfile(path_input, 'radiationdata', F(4).FileName);
+if options.simulation == 1 && ~isempty(atmo_paths)
+    atmfile = atmo_paths{1};
 end
-
+atmo = load_atmo(atmfile, spectral.SCOPEspec);
 
 %% 13. create output files
-[Output_dir,f] = create_output_files_binary(parameter_file, F, path_of_code, path_input, spectral,options);
+[Output_dir, f, fnames] = create_output_files_binary(parameter_file, F, path_of_code, path_input, spectral,options);
 
 %% 14. Run the models
 fprintf('\n The calculations start now \r')
@@ -250,20 +244,38 @@ for k = 1:telmax
         leafbio.emis        = 1-leafbio.rho_thermal-leafbio.tau_thermal;
         leafbio.V2Z         = 0;
         
-        if k == 1 && options.mSCOPE
+        if options.simulation == 1 && ~isempty(fieldnames(mly_ts))  % means that options.simulation == 1 
+           mly.nly    = mly_ts.nly;
+           mly.pLAI   = mly_ts.pLAI(k, :);
+           mly.totLAI = sum(mly.pLAI);
+           mly.pCab   = mly_ts.pCab(k, :);
+           mly.pCca   = mly_ts.pCca(k, :);
+           mly.pCdm   = mly_ts.pCw(k, :);
+           mly.pCw    = mly_ts.pCw(k, :);
+           mly.pCs    = mly_ts.pCs(k, :);
+           mly.pN     = mly_ts.pN(k, :);
+        elseif k == 1 && options.mSCOPE
+           mly = input_mSCOPE('input/mSCOPE.csv');
         else
            if options.mSCOPE
-                warning('I do not know how to use mSCOPE layers in this %d composition', k)
+                warning('I do not know how to use mSCOPE layers with multiple but non time series runs, so I will not use it')
            end
-           mly.nly        = 1;
-           mly.pLAI        = canopy.LAI;
-           mly.totLAI      = canopy.LAI;
-           mly.pCab        = leafbio.Cab;
-           mly.pCca        = leafbio.Cca;
-           mly.pCdm        = leafbio.Cdm;
-           mly.pCw         = leafbio.Cw;
-           mly.pCs         = leafbio.Cs;
-           mly.pN          = leafbio.N;
+           mly.nly      = 1;
+           mly.pLAI     = canopy.LAI;
+           mly.totLAI   = canopy.LAI;
+           mly.pCab     = leafbio.Cab;
+           mly.pCca     = leafbio.Cca;
+           mly.pCdm     = leafbio.Cdm;
+           mly.pCw      = leafbio.Cw;
+           mly.pCs      = leafbio.Cs;
+           mly.pN       = leafbio.N;
+        end
+        
+        if options.simulation == 1 && ~isempty(atmo_paths) && k > 1
+            atmfile_k = atmo_paths{k};
+            if ~strcmp(atmfile_k, atmo_paths{k-1})
+                atmo = load_atmo(atmfile_k, spectral.SCOPEspec);
+            end
         end
         
         leafopt = fluspect_mSCOPE(mly,spectral,leafbio,optipar, nl); 
@@ -359,7 +371,7 @@ for k = 1:telmax
         canopy.reflectance     = pi*rad.Lo_./(rad.Esun_+rad.Esky_);
 
         %% write output
-        output_data_binary(f,k, xyt, rad,  canopy,V, vi, vmax,options)
+        n_col = output_data_binary(f,k, xyt, rad, canopy,V, vi, vmax,options);
         
         %% update input
         if options.simulation==2 && telmax>1, vi  = count(nvars,vi,vmax,1); end
@@ -367,10 +379,10 @@ for k = 1:telmax
 end
 toc
 if options.saveCSV
-    bin_to_csv(Output_dir,V,vmax)
+    bin_to_csv(fnames, V, vmax, n_col, telmax)
 end
 fclose('all');
 
 if options.verify
-    output_verification_csv( Output_dir, F(9).FileName)
+    output_verification_csv(Output_dir, F(9).FileName)
 end

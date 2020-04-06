@@ -1,184 +1,90 @@
-function bin_to_csv(Output_dir,V,vmax)
+function bin_to_csv(fnames, V, vmax, n_col, ns)
 
-f.pars_file               = fopen([Output_dir,'pars_and_input_short.bin'],'r');
-f.veg_file                = fopen([Output_dir,'vegetation.bin'],'r');
-f.fluor_file              = fopen([Output_dir,'fluorescence_scalars.bin'],'r');
-f.fluor_spectrum_file     = fopen([Output_dir,'fluorescence.bin'],'r');
-f.sigmaF_file             = fopen([Output_dir,'sigmaF.bin'],'r');
-f.fhemis_file             = fopen([Output_dir,'fluorescence_hemis.bin'],'r');
-f.r_file                  = fopen([Output_dir,'reflectance.bin'],'r');
-f.Eout_file               = fopen([Output_dir,'Eout_spectrum.bin'],'r');
-f.Lo_file                 = fopen([Output_dir,'Lo_spectrum.bin'],'r');
-f.Lo2_file                = fopen([Output_dir,'Lo_spectrum_inclF.bin'],'r');
-f.Esun_file               = fopen([Output_dir,'Esun.bin'], 'r');
-f.Esky_file               = fopen([Output_dir,'Esky.bin'],'r');
+%% pars
+write_output(['n_pars', {V(vmax>1).Name}], {''}, fnames.pars_file, n_col.pars, ns)
 
+%% veg
+veg_names = {'simulation_number', 'year', 'DoY', 'aPAR', 'aPARbyCab', 'aPARbyCab(energyunits)', 'Photosynthesis', 'Electron_transport', 'NPQ_energy', 'LST'};
+veg_units = {'', '', '', 'umol m-2 s-1', 'umol m-2 s-1', 'W m-2', 'umol m-2 s-1', 'umol m-2 s-1', 'W m-2', 'K'};
+write_output(veg_names, veg_units, fnames.veg_file, n_col.veg, ns)
 
-g.pars_file               = fopen([Output_dir,'pars_and_input_short.csv'],'w');
-g.veg_file                = fopen([Output_dir,'vegetation.csv'],'w');
-g.r_file                  = fopen([Output_dir,'reflectance.csv'],'w');
-g.Lo_file                 = fopen([Output_dir,'Lo_spectrum.csv'],'w');
-g.Esun_file               = fopen([Output_dir,'Esun.csv'], 'w');
-g.Esky_file               = fopen([Output_dir,'Esky.csv'],'w');
-g.Eout_file               = fopen([Output_dir,'Eout_spectrum.csv'],'w');
-if f.fluor_file>0
-    g.fluor_file              = fopen([Output_dir,'fluorescence_scalars.csv'],'w');
-    g.fluor_spectrum_file     = fopen([Output_dir,'fluorescence.csv'],'w');
-    g.sigmaF_file             = fopen([Output_dir,'sigmaF.csv'],'w');
-    g.fhemis_file             = fopen([Output_dir,'fluorescence_hemis.csv'],'w');
-    g.Lo2_file                = fopen([Output_dir,'Lo_spectrum_inclF.csv'],'w');
-end
+%% fluor
+if isfield(fnames, 'fluor_file')
+    fluor_names = {'F_1stpeak', 'wl_1stpeak', 'F_2ndpeak', 'wl_2ndpeak', 'F687', 'F760', 'LFtot', 'EFtot', 'EFtot_RC'};
+    fluor_units = {'W m-2 um-1 sr-1','nm','W m-2 um-1 sr-1','nm','W m-2 um-1 sr-1','W m-2 um-1 sr-1','W m-2 sr-1','W m-2','W m-2'};
+    write_output(fluor_names, fluor_units, fnames.fluor_file, n_col.fluor, ns)
+        
+    write_output({'fluorescence_spectrum 640:1:850 nm'}, {'W m-2 um-1 sr-1'}, ...
+        fnames.fluor_spectrum_file, n_col.fluor_spectrum, ns, true)
 
-pars            = fread(f.pars_file, 'double');
-npars           = pars(1);
-pars2           = reshape(pars,[npars+1, (length(pars))/(npars+1)]);
-pars2           = pars2';
-ns              = size(pars2,1);
-
-for j = find(vmax>1)
-    fprintf(g.pars_file,'%s,',V(vmax>1).Name);
-end
-fprintf(g.pars_file,' \n');
-for j = 1:size(pars2,1)
-    fprintf(g.pars_file,'%d,',pars2(j,2:end-1));
-    fprintf(g.pars_file,'%d',pars2(j,end));
-    fprintf(g.pars_file,'\n');
-end
-clear('pars2')
-
-fprintf(g.veg_file,'%s','simulation_number, year, DoY, aPAR, aPARbyCab, aPARbyCab(energyunits), Photosynthesis, Electron_transport, NPQ_energy, LST');
-fprintf(g.veg_file,'\n');
-fprintf(g.veg_file,'%s',', , , umol m-2 s-1, umol m-2 s-1, Wm-2, umol m-2 s-1, umol m-2 s-1, Wm-2, K');
-fprintf(g.veg_file,'\n');
-veg_out = fread(f.veg_file,'double');
-for k = 1:ns
-    fprintf(g.veg_file,'%d,',veg_out(1+10*(k-1):10*k));
-    fprintf(g.veg_file,'\n');
-end
-clear('veg_out')
-if f.fluor_file>0
-    fprintf(g.fluor_file,'%s','F_1stpeak, wl_1stpeak, F_2ndpeak, wl_2ndpeak, F687, F760, LFtot, EFtot, EFtot_RC');
-    fprintf(g.fluor_file,'\n');
-    fprintf(g.fluor_file,'%s','Wm-2um-1sr-1,nm,Wm-2um-1sr-1,nm,Wm-2um-1sr-1,Wm-2um-1sr-1,Wm-2sr-1,Wm-2,Wm-2');
-    fprintf(g.fluor_file,'\n');
-    fluor_out = fread(f.fluor_file,'double');
-    for k = 1:ns
-        fprintf(g.fluor_file,'%d,',fluor_out(1+9*(k-1):9*k));
-        fprintf(g.fluor_file,'\n');
-    end
-    fprintf(g.fluor_spectrum_file,'%s','fluorescence_spectrum 640:1:850 nm');
-    fprintf(g.fluor_spectrum_file,'\n');
-    fprintf(g.fluor_spectrum_file,'%s','Wm-2um-1sr-1');
-    fprintf(g.fluor_spectrum_file,'\n');
-    fluor_spectrum_out = fread(f.fluor_spectrum_file,'double');
-    for k = 1:ns
-        fprintf(g.fluor_spectrum_file,'%d,',fluor_spectrum_out(1+211*(k-1):211*k-1));
-        fprintf(g.fluor_spectrum_file,'%d',fluor_spectrum_out(211*k));
-        fprintf(g.fluor_spectrum_file,'\n');
-    end
-    clear('fluor_spectrum_out')
+    write_output({'escape probability 640:1:850 nm'}, {'sr-1'}, ...
+        fnames.sigmaF_file, n_col.sigmaF, ns, true)
     
+    write_output({'fluorescence_spectrum 640:1:850 nm hemispherically integrated'}, {'W m-2 um-1'}, ...
+        fnames.fhemis_file, n_col.fhemis, ns, true)  
     
-    fprintf(g.sigmaF_file,'%s','escape probability 640:1:850 nm');
-    fprintf(g.sigmaF_file,'\n');
-    fprintf(g.sigmaF_file,'%s','sr-1');
-    fprintf(g.sigmaF_file,'\n');
-    sigmaF_out = fread(f.sigmaF_file,'double');
-    for k = 1:ns
-        fprintf(g.sigmaF_file,'%d,',sigmaF_out(1+211*(k-1):211*k-1));
-        fprintf(g.sigmaF_file,'%d',sigmaF_out(211*k));
-        fprintf(g.sigmaF_file,'\n');
-    end
-    clear('sigmaF_out');
-    
-    fprintf(g.fhemis_file,'%s','fluorescence_spectrum 640:1:850 nm hemispherically integrated');
-    fprintf(g.fhemis_file,'\n');
-    fprintf(g.fhemis_file,'%s','Wm-2um-1');
-    fprintf(g.fhemis_file,'\n');
-    fhemis_out = fread(f.fhemis_file,'double');
-    for k = 1:ns
-        fprintf(g.fhemis_file,'%d,',fhemis_out(1+211*(k-1):211*k-1));
-        fprintf(g.fhemis_file,'%d',fhemis_out(211*k));
-        fprintf(g.fhemis_file,'\n');
-    end
-    clear('fhemis_out');
-    
-    fprintf(g.Lo2_file,'%s','upwelling radiance including fluorescence');
-    fprintf(g.Lo2_file,'\n');
-    fprintf(g.Lo2_file,'%s','W m-2 um-1 sr-1');
-    fprintf(g.Lo2_file,'\n');
-    Lo2_out = fread(f.Lo2_file,'double');
-    for k = 1:ns
-        fprintf(g.Lo2_file,'%d,',Lo2_out(1+2162*(k-1):2162*k-1));
-        fprintf(g.Lo2_file,'%d',Lo2_out(2162*k));
-        fprintf(g.Lo2_file,'\n');
-    end
-    clear('Lo2_file');
+    write_output({'upwelling radiance including fluorescence'}, {'W m-2 um-1 sr-1'}, ...
+        fnames.Lo2_file, n_col.Lo2, ns, true) 
 end
 
+%% reflectance
+write_output({'reflectance'}, {'pi*upwelling radiance/irradiance'}, ...
+    fnames.r_file, n_col.r, ns, true) 
 
-fprintf(g.r_file,'%s','reflectance');
-fprintf(g.r_file,'\n');
-fprintf(g.r_file,'%s','pi*upwelling radiance/irradiance');
-fprintf(g.r_file,'\n');
-r_out = fread(f.r_file,'double');
-for k = 1:ns
-    fprintf(g.r_file,'%d,',r_out(1+2162*(k-1):2162*k-1));
-    fprintf(g.r_file,'%d',r_out(2162*k));
-    fprintf(g.r_file,'\n');
-end
-clear('r_out');
+write_output({'rsd'}, {'directional-hemispherical reflectance factor'}, ...
+    fnames.rsd_file, n_col.rsd, ns, true) 
 
-fprintf(g.Eout_file,'%s','hemispherically integrated upwelling radiance');
-fprintf(g.Eout_file,'\n');
-fprintf(g.Eout_file,'%s','W m-2 um-1');
-fprintf(g.Eout_file,'\n');
-Eout_out = fread(f.Eout_file,'double');
-for k = 1:ns
-    fprintf(g.Eout_file,'%d,',Eout_out(1+2162*(k-1):2162*k-1));
-    fprintf(g.Eout_file,'%d',Eout_out(2162*k));
-    fprintf(g.Eout_file,'\n');
-end
-clear('Eout_out');
+write_output({'rdd'}, {'bi-hemispherical reflectance factor'}, ...
+    fnames.rdd_file, n_col.rdd, ns, true) 
 
-fprintf(g.Lo_file,'%s','upwelling radiance excluding fluorescence');
-fprintf(g.Lo_file,'\n');
-fprintf(g.Lo_file,'%s','W m-2 um-1 sr-1');
-fprintf(g.Lo_file,'\n');
-Lo_out = fread(f.Lo_file,'double');
-for k = 1:ns
-    fprintf(g.Lo_file,'%d,',Lo_out(1+2162*(k-1):2162*k-1));
-    fprintf(g.Lo_file,'%d',Lo_out(2162*k));
-    fprintf(g.Lo_file,'\n');
-end
-clear('Lo_out');
+write_output({'rso'}, {'bi-directional reflectance factor'}, ...
+    fnames.rso_file, n_col.rso, ns, true) 
 
+%% radiance
+write_output({'hemispherically integrated upwelling radiance'}, {'W m-2 um-1'}, ...
+    fnames.Eout_file, n_col.Eout, ns, true) 
 
-fprintf(g.Esun_file,'%s','direct solar irradiance');
-fprintf(g.Esun_file,'\n');
-fprintf(g.Esun_file,'%s','W m-2 um-1 sr-1');
-fprintf(g.Esun_file,'\n');
-Esun_out = fread(f.Esun_file,'double');
-for k = 1:ns
-    fprintf(g.Esun_file,'%d,',Esun_out(1+2162*(k-1):2162*k-1));
-    fprintf(g.Esun_file,'%d',Esun_out(2162*k));
-    fprintf(g.Esun_file,'\n');
-end
-clear('Esun_out');
+write_output({'upwelling radiance excluding fluorescence'}, {'W m-2 um-1 sr-1'}, ...
+    fnames.Lo_file, n_col.Lo, ns, true) 
 
-fprintf(g.Esky_file,'%s','direct solar irradiance');
-fprintf(g.Esky_file,'\n');
-fprintf(g.Esky_file,'%s','W m-2 um-1 sr-1');
-fprintf(g.Esky_file,'\n');
-Esky_out = fread(f.Esky_file,'double');
-for k = 1:ns
-    fprintf(g.Esky_file,'%d,',Esky_out(1+2162*(k-1):2162*k-1));
-    fprintf(g.Esky_file,'%d',Esky_out(2162*k));
-    fprintf(g.Esky_file,'\n');
-end
-clear('Esky_out');
+write_output({'direct solar irradiance'}, {'W m-2 um-1 sr-1'}, ...
+    fnames.Esun_file, n_col.Esun, ns, true) 
+
+write_output({'diffuse solar irradiance'}, {'W m-2 um-1 sr-1'}, ...
+    fnames.Esky_file, n_col.Esky, ns, true) 
+
 fclose('all');
 
 %% deleting .bin
-delete(fullfile(Output_dir, '*.bin'))
+structfun(@delete, fnames)
+end
+
+function write_output(header, units, bin_path, f_n_col, ns, not_header)
+    if nargin == 5
+        not_header = false;
+    end
+    n_csv = strrep(bin_path, '.bin', '.csv');
+    
+    f_csv = fopen(n_csv, 'w');
+    header_str = [strjoin(header, ','), '\n'];
+    if not_header
+        header_str = ['#' header_str];
+    else
+        % it is a header => each column must have one
+        assert(length(header) == f_n_col, 'Less headers than lines `%s`', bin_path)
+    end
+    fprintf(f_csv, header_str);
+    fprintf(f_csv, ['#' strjoin(units, ','), '\n']);
+    
+    f_bin = fopen(bin_path, 'r');
+    out = fread(f_bin, 'double');
+%     fclose(f_bin);  % + some useconds to execution
+    
+    out_2d = reshape(out, f_n_col, ns)';
+%     dlmwrite(n_csv, out_2d, '-append', 'precision', '%d'); % SLOW!
+    for k=1:ns
+        fprintf(f_csv, '%d,', out_2d(k, 1:end-1));
+        fprintf(f_csv, '%d\n', out_2d(k, end));  % saves from extra comma
+    end
+%     fclose(f_csv);
 end
