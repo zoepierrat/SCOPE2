@@ -29,9 +29,10 @@ function [rad] = RTMz(constants,spectral,rad,soil,leafopt,canopy,gap,angles,Knu,
 wlS         = spectral.wlS';       % SCOPE wavelengths, make column vectors
 wlZ         = spectral.wlZ';       % Excitation wavelengths
 [dummy,iwlfi]    = intersect(wlS,wlZ); %#ok<ASGLU>
-<<<<<<< HEAD
+nwlZ        = length(spectral.wlZ);
 nl          = canopy.nlayers;
 LAI         = gap.LAI_Cv;
+iLAI        = LAI/nl;                       % LAI of a layer        [1]
 Cv          = canopy.Cv;
 Cs          = gap.Cs;
 Fod         = gap.Fod;
@@ -43,36 +44,13 @@ nlazi       = length(lazitab);         % azumith angle
 nlinc       = length(litab);           % inclination
 nlori       = nlinc * nlazi;           % total number of leaf orientations
 layers      = 1:nl;
-nwlZ        = length(spectral.wlZ);
-RZ          = (leafopt.reflZ(:,iwlfi)-leafopt.refl(:,iwlfi))';
-TZ          = (leafopt.tranZ(:,iwlfi)-leafopt.tran(:,iwlfi))';
-
-Ps          = gap.Ps;
-Po          = gap.Po;
-Pso         = gap.Pso;
-=======
-nl           = canopy.nlayers;
-LAI          = gap.LAI_Cv;
-Cv           = canopy.Cv;
-Cs           = gap.Cs;
-Fod          = gap.Fod;
-Fcd          = gap.Fcd;
-litab        = canopy.litab;
-lazitab      = canopy.lazitab;
-lidf         = canopy.lidf;
-nlazi        = length(lazitab);         % azumith angle
-nlinc        = length(litab);           % inclination
-nlori        = nlinc * nlazi;           % total number of leaf orientations
-layers       = 1:nl;
 
 RZ          = (leafopt.reflZ(:, iwlfi)-leafopt.refl(:, iwlfi))';
 TZ          = (leafopt.tranZ(:, iwlfi)-leafopt.tran(:, iwlfi))';
 
-Ps           = gap.Ps;
-Po           = gap.Po;
-Pso          = gap.Pso;
->>>>>>> 4647bd415d38ee8235f44c29233201f3a749f345
-
+Ps          = gap.Ps;
+Po          = gap.Po;
+Pso         = gap.Pso;
 Qs          = (Ps(layers)  + Ps(layers+1))/2;
 
 % for speed-up the calculation only uses wavelength i and wavelength o part of the spectrum
@@ -82,9 +60,6 @@ Eminf_(:,:,1)      = rad.Emins_(:,iwlfi)';
 Eminf_(:,:,2)      = rad.Emind_(:,iwlfi)';
 Epluf_(:,:,1)      = rad.Eplus_(:,iwlfi)';
 Epluf_(:,:,2)      = rad.Eplud_(:,iwlfi)';
-%Eminf_             = [rad.Emins_(:,iwlfi)'; rad.Emind_(:,iwlfi)'];          % transpose into [nwlfo,nl] matrix
-%Epluf_             = [rad.Eplus_(:,iwlfi)' rad.Eplud_(:,iwlfi)'];
-iLAI               = LAI/nl;                       % LAI of a layer        [1]
 
 Xdd         = rad.Xdd(:,iwlfi);
 rho_dd      = rad.rho_dd(:,iwlfi);
@@ -135,23 +110,11 @@ fsctl               = reshape(fsctl,nlori,1);                                   
 ctl2                = reshape(ctl2,nlori,1);                                     % [nlori,1]
 
 %% 1.0 calculation of 'flux' in observation direction
-<<<<<<< HEAD
 [Fmin_,Fplu_]       = deal(zeros(nl+1,nwlZ,2));
 U                   = zeros(nl+1,nwlZ);
 LoF_                = zeros(nwlZ,2);
 MpluEsun            = RZ .* (Esunf_*ones(1,nl));      %
 MminEsun            = TZ .* (Esunf_*ones(1,nl));
-=======
-[U,Fmin_,Fplu_] =deal(zeros(nl+1,length(spectral.wlZ)));
-% MpluEmin  = (RZ*ones(1,nl)) .* Eminf_(:,1:nl);	    % [nf,nl+1]  = (nf,ne) * (ne,nl+1)
-% MpluEplu  = (RZ*ones(1,nl))  .* Epluf_(:,1:nl);
-% MminEmin  = (TZ*ones(1,nl))  .* Eminf_(:,1:nl);
-% MminEplu  = (TZ*ones(1,nl))  .* Epluf_(:,1:nl);
-MpluEmin  = (RZ) .* Eminf_(:,1:nl);	    % [nf,nl+1]  = (nf,ne) * (ne,nl+1)
-MpluEplu  = (RZ)  .* Epluf_(:,1:nl);
-MminEmin  = (TZ)  .* Eminf_(:,1:nl);
-MminEplu  = (TZ)  .* Epluf_(:,1:nl);
->>>>>>> 4647bd415d38ee8235f44c29233201f3a749f345
 
 %
 laz= 1/36;
