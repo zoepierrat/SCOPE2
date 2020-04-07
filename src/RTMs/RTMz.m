@@ -23,7 +23,7 @@ function [rad] = RTMz(constants,spectral,rad,soil,leafopt,canopy,gap,angles,Knu,
 % Output:
 %   rad         a large number of radiative fluxes: spectrally distributed
 %               and integrated, and canopy radiative transfer coefficients.
-%               Here, fluorescence fluxes are added
+%               Here, fluxes are added
 
 %% 0.1 initialisations
 wlS         = spectral.wlS';       % SCOPE wavelengths, make column vectors
@@ -111,12 +111,7 @@ ctl2                = reshape(ctl2,nlori,1);                                    
 
 %% 1.0 calculation of 'flux' in observation direction
 [Fmin_,Fplu_]       = deal(zeros(nl+1,nwlZ,2));
-U                   = zeros(nl+1,nwlZ);
 LoF_                = zeros(nwlZ,2);
-MpluEsun            = RZ .* (Esunf_*ones(1,nl));      %
-MminEsun            = TZ .* (Esunf_*ones(1,nl));
-
-%
 laz= 1/36;
 etah = Kn2Cx(Knh);
 
@@ -130,24 +125,21 @@ etau_lidf = bsxfun(@times,reshape(etau,nlori,nl),repmat(lidf*laz,36,1));     %[n
 etah_lidf = bsxfun(@times,repmat(etah,1,nlori)',repmat(lidf*laz,36,1));
 
 for k = 1:2
+    [U,Y]     = deal(zeros(nl+1,nwlZ)); 
+    MpluEsun  = RZ .* Esunf_*(k<2);      %
+    MminEsun  = TZ .* Esunf_*(k<2);
+    
     MpluEmin  = RZ  .* Eminf_(:,1:nl,k);	    % [nf,nl+1]  = (nf,ne) * (ne,nl+1)
     MpluEplu  = RZ  .* Epluf_(:,1:nl,k);
     MminEmin  = TZ  .* Eminf_(:,1:nl,k);
     MminEplu  = TZ  .* Epluf_(:,1:nl,k);
-    switch k
-        case 1
-            wfEs      =  bsxfun(@times,sum(bsxfun(@times,etau_lidf,absfsfo)),MpluEsun) +...
-                bsxfun(@times,sum(bsxfun(@times,etau_lidf,fsfo)),MminEsun);
-            sfEs     =  bsxfun(@times,sum(bsxfun(@times,etau_lidf,absfs)),MpluEsun) -...
-                bsxfun(@times,sum(bsxfun(@times,etau_lidf,fsctl)),MminEsun);
-            sbEs     =  bsxfun(@times,sum(bsxfun(@times,etau_lidf,absfs)),MpluEsun) +...
-                bsxfun(@times,sum(bsxfun(@times,etau_lidf,fsctl)),MminEsun);           
-        case 2
-            wfEs = wfEs*0;
-            sfEs = sfEs*0;
-            sbEs = sbEs*0;
-    end
     
+    wfEs      =  bsxfun(@times,sum(bsxfun(@times,etau_lidf,absfsfo)),MpluEsun) +...
+        bsxfun(@times,sum(bsxfun(@times,etau_lidf,fsfo)),MminEsun);
+    sfEs     =  bsxfun(@times,sum(bsxfun(@times,etau_lidf,absfs)),MpluEsun) -...
+        bsxfun(@times,sum(bsxfun(@times,etau_lidf,fsctl)),MminEsun);
+    sbEs     =  bsxfun(@times,sum(bsxfun(@times,etau_lidf,absfs)),MpluEsun) +...
+        bsxfun(@times,sum(bsxfun(@times,etau_lidf,fsctl)),MminEsun);
     vfEplu_h  = bsxfun(@times,sum(bsxfun(@times,etah_lidf,absfo)),MpluEplu) -...
         bsxfun(@times,sum(bsxfun(@times,etah_lidf,foctl)),MminEplu);
     vfEplu_u  = bsxfun(@times,sum(bsxfun(@times,etau_lidf,absfo)),MpluEplu) -...
@@ -173,7 +165,7 @@ for k = 1:2
     sigbEplu_u  = bsxfun(@times,sum(etau_lidf),MpluEplu) +...
         bsxfun(@times,sum(bsxfun(@times,etau_lidf,ctl2)),MminEplu);
     
-    %   Emitted fluorescence
+    %   Emitted 'flux'
     
     piLs        =   wfEs+vfEplu_u+vbEmin_u;         % sunlit for each layer
     piLd        =   vbEmin_h+vfEplu_h;              % shade leaf for each layer
