@@ -197,7 +197,7 @@ switch options.simulation
     case 1, telmax = size(xyt.t,1);
     case 2, telmax  = prod(double(vmax)); [xyt.t,xyt.year]= deal(zeros(telmax,1));
 end
-[rad,thermal,fluxes] = initialize_output_structures(spectral);
+% [rad,thermal,fluxes] = initialize_output_structures(spectral);
 
 %% irradiance
 atmfile = fullfile(path_input, 'radiationdata', F(4).FileName);
@@ -303,7 +303,7 @@ for k = 1:telmax
         [rad,gap]       = RTMo(spectral,atmo,soil,leafopt,canopy,angles,constants,meteo,options);
         
         %% energy balance
-        [iter,rad,thermal,soil,bcu,bch]             ...
+        [iter,rad,thermal,soil,bcu,bch,fluxes]             ...
             = ebal(constants,options,rad,gap,  ...
             meteo,soil,canopy,leafbio);
         
@@ -371,7 +371,7 @@ for k = 1:telmax
         canopy.reflectance     = pi*rad.Lo_./(rad.Esun_+rad.Esky_);
 
         %% write output
-        n_col = output_data_binary(f,k, xyt, rad, canopy,V, vi, vmax,options);
+        n_col = output_data_binary(f, k, xyt, rad, canopy, V, vi, vmax, options, fluxes);
         
         %% update input
         if options.simulation==2 && telmax>1, vi  = count(nvars,vi,vmax,1); end

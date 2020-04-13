@@ -1,4 +1,4 @@
-function [iter,rad,thermal,soil,bcu,bch]             ...
+function [iter,rad,thermal,soil,bcu,bch,fluxes]             ...
     = ebal(constants,options,rad,gap,  ...
     meteo,soil,canopy,leafbio)
 % function ebal.m calculates the energy balance of a vegetated surface
@@ -139,7 +139,6 @@ if size(Rnuc,2)>1
     for i = 1:nl
         fVu(:,:,i) = fV(i);
     end
-    
 else
     fVu = fV;
 end
@@ -159,7 +158,6 @@ while CONT                          % while energy balance does not close
     Rns     = [Rnhs Rnus]';
     
  %    rad2  = RTMt_sb(constants,rad,soil,leafbio,canopy,gap,Tcu,Tch,Ts(2),Ts(1),0);
- % keyboard
     
     % 2.2. Aerodynamic roughness
     % calculate friction velocity [m s-1] and aerodynamic resistances [s m-1]
@@ -260,5 +258,32 @@ thermal.Tch     = Tch;
 thermal.Tsu     = Ts(2);
 thermal.Tsh     = Ts(1);
 
+fluxes.Rnctot = LAI* aggregator(Rnhc, Rnuc, Fc, Ps, canopy);     % net radiation leaves
+fluxes.lEctot = LAI* aggregator(lEch, lEcu, Fc, Ps, canopy);     % latent heat leaves
+fluxes.Hctot  = LAI* aggregator(Hch, Hcu, Fc, Ps, canopy);       % sensible heat leaves
+fluxes.Actot  = LAI* aggregator(bch.A, bcu.A, Fc, Ps, canopy);   % photosynthesis leaves
+fluxes.Tcave  = aggregator(Tch, Tcu, Fc, Ps, canopy);            % mean leaf temperature
+
+fluxes.Rnstot = Fs*Rns;           % Net radiation soil
+fluxes.lEstot = Fs*lEs;           % Latent heat soil
+fluxes.Hstot  = Fs*Hs;            % Sensible heat soil
+fluxes.Gtot   = Fs*G;             % Soil heat flux
+fluxes.Tsave  = Fs*Ts;            % Soil temperature
+% fluxes.Resp   = Fs*equations.soil_respiration(Ts); %  Soil respiration = 0
+
+fluxes.Rntot = fluxes.Rnctot + fluxes.Rnstot;
+fluxes.lEtot = fluxes.lEctot + fluxes.lEstot;
+fluxes.Htot = fluxes.Hctot + fluxes.Hstot;
+fluxes.rss = rss;
+
+end
+
+
+function flux_tot = aggregator(shaded_flux, sunlit_flux, Fc, Ps, canopy)
+    if size(sunlit_flux, 2) > 1
+        flux_tot = Fc*shaded_flux + meanleaf(canopy,sunlit_flux,'angles_and_layers',Ps);
+    else
+        flux_tot = Fc*shaded_flux + (1-Fc)*sunlit_flux;
+    end
 end
 

@@ -24,7 +24,7 @@ ea_file,
 u_file,
 ,
 optional,
-verification_dir,verification_30
+verification_dir,new_verification_30
 soil_file,
 CO2_file,
 z_file,

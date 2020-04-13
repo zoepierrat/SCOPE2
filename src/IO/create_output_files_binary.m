@@ -11,7 +11,6 @@ if any(~exist(Output_dir,'dir'))
     mkdir([Output_dir,'Parameters' filesep])
 end
 
-
 %% Log File
 for i = 1:length(parameter_file{1})
     copy_name = [strrep(parameter_file{1}{i}, '.csv', '') '_' outdir_name '.csv'];
@@ -24,6 +23,7 @@ fprintf(fidpath,'%s', path_of_code);
 
 fnames.pars_file               = fullfile(Output_dir,'pars_and_input_short.bin');
 fnames.veg_file                = fullfile(Output_dir,'vegetation.bin');
+fnames.flu_file                = fullfile(Output_dir,'fluxes.bin');
 if options.calc_fluor
     fnames.fluor_file              = fullfile(Output_dir,'fluorescence_scalars.bin');
     fnames.fluor_spectrum_file     = fullfile(Output_dir,'fluorescence.bin');
