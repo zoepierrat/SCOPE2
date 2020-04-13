@@ -19,6 +19,11 @@ flu_units = {'', '', '', ...
     'W m-2',' W m-2','W m-2','s m-1'};
 write_output(flu_names, flu_units, fnames.flu_file, n_col.flu, ns)
 
+%% rad
+rad_names = {'simulation_number','year','DoY','ShortIn','LongIn','HemisOutShort','HemisOutLong','Lo','Lot','Lote'};
+rad_units = {'','','','W m-2','W m-2','W m-2','W m-2','W m-2 sr-1','W m-2 sr-1','W m-2 sr-1'};
+write_output(rad_names, rad_units, fnames.rad_file, n_col.rad, ns)
+
 %% fluor
 if isfield(fnames, 'fluor_file')
     fluor_names = {'F_1stpeak', 'wl_1stpeak', 'F_2ndpeak', 'wl_2ndpeak', 'F687', 'F760', 'LFtot', 'EFtot', 'EFtot_RC'};
@@ -85,7 +90,7 @@ function write_output(header, units, bin_path, f_n_col, ns, not_header)
         header_str = ['#' header_str];
     else
         % it is a header => each column must have one
-        assert(length(header) == f_n_col, 'Less headers than lines `%s`', bin_path)
+        assert(length(header) == f_n_col, 'Less headers than lines `%s` or n_col is wrong', bin_path)
     end
     fprintf(f_csv, header_str);
     fprintf(f_csv, ['#' strjoin(units, ','), '\n']);

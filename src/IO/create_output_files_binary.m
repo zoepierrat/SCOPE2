@@ -24,6 +24,7 @@ fprintf(fidpath,'%s', path_of_code);
 fnames.pars_file               = fullfile(Output_dir,'pars_and_input_short.bin');
 fnames.veg_file                = fullfile(Output_dir,'vegetation.bin');
 fnames.flu_file                = fullfile(Output_dir,'fluxes.bin');
+fnames.rad_file                = fullfile(Output_dir,'radiation.bin');
 if options.calc_fluor
     fnames.fluor_file              = fullfile(Output_dir,'fluorescence_scalars.bin');
     fnames.fluor_spectrum_file     = fullfile(Output_dir,'fluorescence.bin');

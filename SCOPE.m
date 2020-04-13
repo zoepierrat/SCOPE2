@@ -369,9 +369,10 @@ for k = 1:telmax
         
         % reflectance
         canopy.reflectance     = pi*rad.Lo_./(rad.Esun_+rad.Esky_);
-
+        
+        rad.Lo = 0.001 * Sint(rad.Lo_(spectral.IwlP),spectral.wlP);
         %% write output
-        n_col = output_data_binary(f, k, xyt, rad, canopy, V, vi, vmax, options, fluxes);
+        n_col = output_data_binary(f, k, xyt, rad, canopy, V, vi, vmax, options, fluxes, meteo);
         
         %% update input
         if options.simulation==2 && telmax>1, vi  = count(nvars,vi,vmax,1); end
