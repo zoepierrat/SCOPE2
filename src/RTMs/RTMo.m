@@ -345,8 +345,8 @@ for j = 1:nl     % 1 top nl is bottom
     % net radiation (mW m-2 um-1) and net PAR (moles m-2 s-1 um-1), per wavelength
     Rndif_(j,:)         = E_.*epsc(j,:);                                                    % [nl,nwl]  Net (absorbed) radiation by leaves
     Pndif_(j,:)         = .001 *(e2phot(wlPAR*1E-9, Rndif_(j,Ipar)',constants))';                     % [nl,nwl]  Net (absorbed) as PAR photons
-    Pndif_Cab_(j,:)     = .001 *(kChlrel(j,Ipar).*Rndif_(j,Ipar))';    % [nl,nwl]  Net (absorbed) as PAR photons by Cab
-    Rndif_Cab_(j,:)     = .001 *(e2phot(wlPAR*1E-9, (kChlrel(j,Ipar).*Rndif_(j,Ipar))',constants))';    % [nl,nwl]  Net (absorbed) as PAR photons by Cab
+    Rndif_Cab_(j,:)     = .001 *(kChlrel(j,Ipar).*Rndif_(j,Ipar))';    % [nl,nwl]  Net (absorbed) as PAR photons by Cab
+    Pndif_Cab_(j,:)     = .001 *(e2phot(wlPAR*1E-9, (kChlrel(j,Ipar).*Rndif_(j,Ipar))',constants))';    % [nl,nwl]  Net (absorbed) as PAR photons by Cab
     Rndif_PAR_(j,:)     = Rndif_(j,Ipar);                                                   % [nl,nwlPAR]  Net (absorbed) as PAR energy 
    
     % net radiation (W m-2) and net PAR (moles m-2 s-1), integrated over all wavelengths
