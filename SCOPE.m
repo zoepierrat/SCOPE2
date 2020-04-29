@@ -60,6 +60,8 @@ options.simulation          = N(11);    % 0: individual runs (specify all input 
 % 1: time series (uses text files with meteo input as time series)
 % 2: Lookup-Table (specify the values to be included)
 % 3: Lookup-Table with random input (specify the ranges of values)
+options.calc_directional     = N(12);    % 0: calculate full BRDF (many angles)
+options.calc_vert_profiles   = N(13);
 
 if options.simulation>2 || options.simulation<0, fprintf('\n simulation option should be between 0 and 2 \r'); return, end
 
@@ -199,6 +201,15 @@ switch options.simulation
 end
 % [rad,thermal,fluxes] = initialize_output_structures(spectral);
 
+if options.calc_directional
+    anglesfile          = load([path_input,'directional/brdf_angles2.dat']); %     Multiple observation angles in case of BRDF calculation
+    directional.tto     = anglesfile(:,1);              % [deg]             Observation zenith Angles for calcbrdf
+    directional.psi     = anglesfile(:,2);              % [deg]             Observation zenith Angles for calcbrdf
+    directional.noa     = length(directional.tto);      %                   Number of Observation Angles
+else
+    directional = NaN;
+end
+
 %% irradiance
 atmfile = fullfile(path_input, 'radiationdata', F(4).FileName);
 if options.simulation == 1 && ~isempty(atmo_paths)
@@ -300,7 +311,7 @@ for k = 1:telmax
         soil.refl(spectral.IwlT) = soil.rs_thermal;
         
         %% four stream canopy radiative transfer model for incident radiation
-        [rad,gap]       = RTMo(spectral,atmo,soil,leafopt,canopy,angles,constants,meteo,options);
+        [rad,gap,profiles]       = RTMo(spectral,atmo,soil,leafopt,canopy,angles,constants,meteo,options);
         
         %% energy balance
         [iter,rad,thermal,soil,bcu,bch,fluxes]             ...
@@ -367,15 +378,20 @@ for k = 1:telmax
             rad.Lototf_(spectral.IwlF') = rad.Lototf_(spectral.IwlF)+rad.LoF_;
         end
         
+        if options.calc_directional
+            directional = calc_brdf(constants,options,directional,spectral,angles,atmo,soil,leafopt,canopy,meteo,thermal,bcu,bch);
+            savebrdfoutput(options,directional,angles,spectral,Output_dir)
+        end
         % reflectance
         canopy.reflectance     = pi*rad.Lo_./(rad.Esun_+rad.Esky_);
         
         rad.Lo = 0.001 * Sint(rad.Lo_(spectral.IwlP),spectral.wlP);
         %% write output
-        n_col = output_data_binary(f, k, xyt, rad, canopy, V, vi, vmax, options, fluxes, meteo);
+        n_col = output_data_binary(f, k, xyt, rad, canopy, V, vi, vmax, options, fluxes, meteo);,directional,angles,spectral);
         
         %% update input
         if options.simulation==2 && telmax>1, vi  = count(nvars,vi,vmax,1); end
+        
     end
 end
 toc

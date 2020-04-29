@@ -9,3 +9,5 @@
 1,saveCSV
 0,mSCOPE
 0,simulation
+1,calc_directional
+1,calc_vert_profiles
