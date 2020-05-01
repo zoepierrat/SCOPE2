@@ -198,15 +198,6 @@ vf          = dof*rho + dob*tau;            % [nl,nwl]     vf,     p305{1} direc
 w           = sob*rho + sof*tau;            % [nl,nwl]     w,      p309{1} bidirectional scattering coefficent (directional-directional)
 a           = 1-sigf;                       % [nl,nwl]     attenuation
 
-% the following six lines may be removed in a next version when RTMt is revised
-%m           = sqrt(a.*a-sigb.*sigb);% 
-%rinf        = (a-m)./sigb;         %               Reflection coefficient for infinite thick canopy    
-%rad.fHs     = (1-rinf.*rinf).*(1-rs(end))./(1-rinf.*rs);
-%rad.fHc     = iLAI*m.*(1-rinf);
-%rad.fbottom = (rs-rinf)./(1-rs.*rinf);
-%rad.rinf    = rinf;
-%rad.m       = m;
-
 % crown area projections
 Cs          = 1-(1-Cv).^(1./cos_tts);       %           crown cover fraction projected in the direction of the sun
 Co          = 1-(1-Cv).^(1./cos_tto);       %           crown cover fraction projected in the direction of viewing
@@ -231,11 +222,40 @@ Emin_ = Emins_+Emind_;
 Eplu_ = Eplus_+Eplud_;
 %%
 % 1.5 probabilities Ps, Po, Pso
-Ps          =   exp(k*xl*LAI);                                              % [nl+1]  p154{1} probability of viewing a leaf in solar dir
-Po          =   exp(K*xl*LAI); 
+d_h         = crownd / canopy.hc;
+Ps0          =   exp(k*xl*LAI) ;                                              % [nl+1]  p154{1} probability of viewing a leaf in solar dir
+Po0          =   exp(K*xl*LAI) ;
+Ps0(1:nl)    =   Ps0(1:nl) *(1-exp(-k*LAI*dx))/(k*LAI*dx);                                      % Correct Ps/Po for finite dx
+Po0(1:nl)    =   Po0(1:nl) *(1-exp(-K*LAI*dx))/(K*LAI*dx);  % Correct Ps/Po for finite dx
+
+xls         =   min(1,d_h*(1-Cv)/Cv / tan_tts);% theta is the ratio of d/h
+xlo         =   min(1,d_h*(1-Cv)/Cv / tan_tto);
+
+C1s         = exp(-k*iLAI); % extinction
+C1o         = exp(-K*iLAI);
+C2s         = tan_tts/theta/nl * exp(-k*iLAI/4); % extra term
+C2o         = tan_tto/theta/nl * exp(-K*iLAI/4);
+% coefficients in the extra term: 2 because it is a triangle
+% 4 (need to check carefully) because we account for the extinction within the thin layer. The
+% average path out is integral of all positions in the triangle to the exit
+% on the left side.
+%
+
+[Ps1,Po1]     = deal(ones(nl+1,1));
+Ps1(1)      = C2s;
+Po1(1)      = C2o;
+for j = 2:nl+1
+    Ps1(j)   = C1s*Ps1(j-1)+C2s *double(((j-1)/nl)<=xls);
+    Po1(j)   = C1o*Po1(j-1)+C2o *double(((j-1)/nl)<=xlo);
+    
+end
+
+
+Ps          = Ps0 + Ps1; % for sure Ps0 has to be multiplied by a weight!
+Po          = Po0 + Po1;
 % [nl+1]  p154{1} probability of viewing a leaf in observation dir
-Ps(1:nl)    =   Ps(1:nl) *(1-exp(-k*LAI*dx))/(k*LAI*dx);                                      % Correct Ps/Po for finite dx
-Po(1:nl)    =   Po(1:nl) *(1-exp(-K*LAI*dx))/(K*LAI*dx);  % Correct Ps/Po for finite dx
+
+
 q           =   canopy.hot;
 Pso         =   zeros(size(Po));
 for j=1:length(xl)
@@ -250,7 +270,7 @@ Fcd = Co * Cs + overlap;  % shaded, below canopy, obscured
 Fcs = Co * (1 - Cs) - overlap; % sunlit, below canopy, obscured
 Fod = (1 - Co) * Cs - overlap; % shaded, outside canopy, visible
 Fos = (1 - Co) * (1 - Cs) + overlap; % sunlit, outside canopy, visible
-    
+
 %%
 % 3.3 outgoing fluxes, hemispherical and in viewing direction, spectrum
 % in viewing direction, spectral due to diffuse light
@@ -458,11 +478,12 @@ rad.Xdd     =   Xdd;
 rad.Xsd     = Xsd;
 rad.Xss     = Xss;
 
-gap.Fcd  = Fcd;
-gap.Fcs  = Fcs;
-gap.Fod  = Fod;
-gap.Fos  = Fos;
-gap.Cs   = Cs;
+gap.Fcd     = Fcd;
+gap.Fcs     = Fcs;
+gap.Fod     = Fod;
+gap.Fos     = Fos;
+gap.Cs      = Cs;
+gap.Co      = Co;
 gap.LAI_Cv = LAI;
 
 % Rn = canopy.LAI*(meanleaf(canopy,rad.Rnhc,'layers',(1-Ps(1:nl)))+meanleaf(canopy,rad.Rnuc,'angles_and_layers',Ps(1:nl)))

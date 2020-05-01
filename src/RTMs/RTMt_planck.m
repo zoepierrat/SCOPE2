@@ -77,6 +77,7 @@ LAI         = gap.LAI_Cv;
 dx          = 1/nl;
 iLAI        = LAI*dx;
 Cv          = canopy.Cv;
+Co          = gap.Co;
 Cs          = gap.Cs;
 Fos         = gap.Fos;
 Fod         = gap.Fod;
@@ -142,10 +143,10 @@ for i = 1:length(IT)
     vb          = rad.vb(end);
     vf          = rad.vf(end);
     piLov       = Cv*iLAI*...
-        (K*Hcsh'*(gap.Po(1:nl)-gap.Pso(1:nl))+  ...              % directional   emitted     radation by shaded leaves
-        K*Hcsu'*gap.Pso(1:nl)+ ... % compute column means for each level
-        (vb*Emin(1:nl) + vf*Eplu(1:nl))'*gap.Po(1:nl));      % directional   scattered   radiation by vegetation for diffuse incidence
-    
+       (K*Hcsh'*(gap.Po(1:nl)-gap.Pso(1:nl))+  ...              % directional   emitted     radation by shaded leaves
+       K*Hcsu'*gap.Pso(1:nl)+ ... % compute column means for each level
+       (vb*Emin(1:nl) + vf*Eplu(1:nl))'*gap.Po(1:nl));      % directional   scattered   radiation by vegetation for diffuse incidence   
+   
     piLos       = Fcd*(Hssh*(gap.Po(nl+1)-gap.Pso(nl+1))+ Hssu*gap.Pso(nl+1)) +...                        % directional   emitted     radiation by shaded soil
         Fcs*Hssu*gap.Po(nl+1)+...                                   % directional   emitted     radiation by sunlit soil
         Fos*Hssu + ...
