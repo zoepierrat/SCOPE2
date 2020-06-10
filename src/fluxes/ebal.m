@@ -1,6 +1,6 @@
 function [iter,rad,thermal,soil,bcu,bch,fluxes]             ...
     = ebal(constants,options,rad,gap,  ...
-    meteo,soil,canopy,leafbio)
+    meteo,soil,canopy,leafbio,k,xyt)
 % function ebal.m calculates the energy balance of a vegetated surface
 %
 % authors:      Christiaan van der Tol (c.vandertol@utwente.nl)
@@ -96,6 +96,20 @@ maxEBer     = 1;
 Wc          = 1;
 CONT        = 1;              %           is 0 when the calculation has finished
 
+SoilHeatMethod = options.soil_heat_method;
+if ~(options.simulation==1), SoilHeatMethod = 2; end
+
+if SoilHeatMethod < 2 
+    if k>1       
+        Deltat          = (datenum(xyt.t(k))-datenum(xyt.t(k-1)))*86400;           %           Duration of the time interval (s)
+    else
+        Deltat          = 1/48*86400;
+    end
+    
+    x 		= [1:12;1:12]'*Deltat;
+    Tsold = soil.Tsold;
+end
+
 % functions for saturated vapour pressure
 es_fun      = @(T)6.107*10.^(7.5.*T./(237.3+T));
 s_fun       = @(es, T) es*2.3026*7.5*237.3./(237.3+T).^2;
@@ -109,6 +123,7 @@ p           = meteo.p;
 nl = canopy.nlayers;
 
 Rnuc        = rad.Rnuc;
+GAM         = soil.GAM;
 Tch         = (Ta+.1)*ones(nl,1);                 % Leaf temperature (shaded leaves)
 Tcu         = (Ta+.3)*ones(size(Rnuc));           % Leaf tempeFrature (sunlit leaves)
 ech         = ea*ones(nl,1);          % Leaf boundary vapour pressure (shaded/sunlit leaves)
@@ -206,7 +221,13 @@ while CONT                          % while energy balance does not close
     Htot    = Hstot + Hctot;
     
     % ground heat flux
-    G       = 0.35*Rns;
+
+    if SoilHeatMethod
+       G = 0.35*Rns;
+    else      
+       G = GAM/sqrt(pi) * 2* sum(([Ts'; Tsold(1:end-1,:)] - Tsold)/Deltat .* (sqrt(x) - sqrt(x-Deltat)));
+       G = G';
+    end
     
     % 2.5. Monin-Obukhov length L
     meteo.L     = Monin_Obukhov(constants,meteo,Htot);                                          % [1]
