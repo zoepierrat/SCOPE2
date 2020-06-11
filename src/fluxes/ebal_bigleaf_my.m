@@ -1,6 +1,6 @@
 function [iter,rad,thermal,soil,bcu,bch,fluxes]             ...
-    = ebal(constants,options,rad,gap,  ...
-    meteo,soil,canopy,leafbio,k,xyt)
+    = ebal_bigleaf_my(constants,options,rad,gap,  ...
+    meteo,soil,canopy,leafbio)
 % function ebal.m calculates the energy balance of a vegetated surface
 %
 % authors:      Christiaan van der Tol (c.vandertol@utwente.nl)
@@ -96,20 +96,6 @@ maxEBer     = 1;
 Wc          = 1;
 CONT        = 1;              %           is 0 when the calculation has finished
 
-SoilHeatMethod = options.soil_heat_method;
-if ~(options.simulation==1), SoilHeatMethod = 2; end
-
-if SoilHeatMethod < 2 
-    if k > 1       
-        Deltat          = (datenum(xyt.t(k))-datenum(xyt.t(k-1)))*86400;           %           Duration of the time interval (s)
-    else
-        Deltat          = 1/48*86400;
-    end
-    
-    x 		= [1:12;1:12]'*Deltat;
-    Tsold   = soil.Tsold;
-end
-
 % functions for saturated vapour pressure
 es_fun      = @(T)6.107*10.^(7.5.*T./(237.3+T));
 s_fun       = @(es, T) es*2.3026*7.5*237.3./(237.3+T).^2;
@@ -123,7 +109,6 @@ p           = meteo.p;
 nl = canopy.nlayers;
 
 Rnuc        = rad.Rnuc;
-GAM         = soil.GAM;
 Tch         = (Ta+.1)*ones(nl,1);                 % Leaf temperature (shaded leaves)
 Tcu         = (Ta+.3)*ones(size(Rnuc));           % Leaf tempeFrature (sunlit leaves)
 ech         = ea*ones(nl,1);          % Leaf boundary vapour pressure (shaded/sunlit leaves)
@@ -146,7 +131,7 @@ LAI         = canopy.LAI;
 % other preparations
 e_to_q      = MH2O/Mair./p;             % Conversion of vapour pressure [Pa] to absolute humidity [kg kg-1]
 Fs          = [1-Ps(end),Ps(end)];      % Matrix containing values for 1-Ps and Ps of soil
-Fc          = (1-Ps(1:end-1))'/nl;      % Matrix containing values for Ps of canopy
+Fc          = sum(1-Ps(1:end-1))'/nl;      % Matrix containing values for Ps of canopy
 fV          = exp(kV*xl(1:end-1));       % Vertical profile of Vcmax
 
 if size(Rnuc,2)>1
@@ -185,21 +170,23 @@ while CONT                          % while energy balance does not close
     
     % 2.3. Biochemical processes
     [meteo_h,meteo_u]  = deal(meteo);
-    meteo_h.T       = Tch;
-    meteo_h.eb      = ech;
-    meteo_h.Cs      = Cch;
-    meteo_h.Q       = rad.Pnh_Cab;
-    meteo_u.T       = Tcu;
-    meteo_u.eb      = ecu;
-    meteo_u.Cs      = Ccu;
-    meteo_u.Q       = rad.Pnu_Cab;
+    meteo_h.T       = mean(Tch)*(1-Fc) + mean(Tcu(:))*Fc;
+    meteo_h.eb      = mean(ech)*(1-Fc) + mean(ecu(:))*Fc;
+    meteo_h.Cs      = mean(Cch)*(1-Fc) + mean(Cch(:))*Fc;
+    meteo_h.Q       = mean(rad.Pnh_Cab)*(1-Fc) + mean(rad.Pnu_Cab(:))*Fc;
+%     meteo_u.T       = mean(Tcu(:));
+%     meteo_u.eb      = mean(ecu(:));
+%     meteo_u.Cs      = mean(Ccu(:));
+%     meteo_u.Q       = mean(rad.Pnu_Cab(:));
     if options.Fluorescence_model == 2
         b       = @biochemical_MD12;
     else 
         b       = @biochemical;
     end
-    bch     = b(leafbio,meteo_h,options,constants,fV);
-    bcu     = b(leafbio,meteo_u,options,constants,fVu);
+%     bch     = b(leafbio,meteo_h,options,constants,fV);
+%     bcu     = b(leafbio,meteo_u,options,constants,fVu);
+    bch     = b(leafbio,meteo_h,options,constants,1);
+%     bcu     = b(leafbio,meteo_u,options,constants,1);
     
     % 2.4. Fluxes (latent heat flux (lE), sensible heat flux (H) and soil heat flux G
     % in analogy to Ohm's law, for canopy (c) and soil (s). All in units of [W m-2]
@@ -207,47 +194,42 @@ while CONT                          % while energy balance does not close
     rss     = soil.rss;
     rac     = (LAI+1)*(raa+rawc);
     ras     = (LAI+1)*(raa+raws);
-    [lEch,Hch,ech,Cch,lambdah,sh]     = heatfluxes(rac,bch.rcw,Tch,ea,Ta,e_to_q,Ca,bch.Ci,constants, es_fun, s_fun);
-    [lEcu,Hcu,ecu,Ccu,lambdau,su]     = heatfluxes(rac,bcu.rcw,Tcu,ea,Ta,e_to_q,Ca,bcu.Ci,constants, es_fun, s_fun);
+    [lEch,Hch,ech,Cch,lambdah,sh]     = heatfluxes(rac,bch.rcw,meteo_h.T,ea,Ta,e_to_q,Ca,bch.Ci,constants, es_fun, s_fun);
+%     [lEcu,Hcu,ecu,Ccu,lambdau,su]     = heatfluxes(rac,bcu.rcw,meteo_u.T,ea,Ta,e_to_q,Ca,bcu.Ci,constants, es_fun, s_fun);
     [lEs,Hs,~,~,lambdas,ss]           = heatfluxes(ras,rss ,Ts ,ea,Ta,e_to_q,Ca,Ca,constants, es_fun, s_fun);
     
     % integration over the layers and sunlit and shaded fractions
     Hstot   = Fs*Hs;
-    if size(Hcu,2)>1
-            Hctot   = LAI*(Fc*Hch + meanleaf(canopy,Hcu,'angles_and_layers',Ps));
-    else
-        Hctot       = LAI*(Fc*Hch + (1-Fc)*Hcu);
-    end
+%     if size(Hcu,2)>1
+%             Hctot   = LAI*(Fc*Hch + meanleaf(canopy,Hcu,'angles_and_layers',Ps));
+%     else
+%         Hctot       = LAI*(Fc*Hch + (1-Fc)*Hcu);
+%     end
+    Hctot = LAI*Hch;
     Htot    = Hstot + Hctot;
     
     % ground heat flux
-
-    if SoilHeatMethod
-       G = 0.35*Rns;
-    else      
-       G = GAM/sqrt(pi) * 2* sum(([Ts'; Tsold(1:end-1,:)] - Tsold)/Deltat .* (sqrt(x) - sqrt(x-Deltat)));
-       G = G';
-    end
+    G       = 0.35*Rns;
     
     % 2.5. Monin-Obukhov length L
     meteo.L     = Monin_Obukhov(constants,meteo,Htot);                                          % [1]
     
     % 2.6. energy balance errors, continue criterion and iteration counter
-    EBerch  = Rnhc -lEch -Hch;
-    EBercu  = Rnuc -lEcu -Hcu;
+    EBerch  = mean(Rnhc) -lEch -Hch;
+%     EBercu  = mean(Rnuc(:)) -lEcu -Hcu;
     EBers   = Rns  -lEs  -Hs - G;
     
     counter     = counter+1;                   %        Number of iterations
-    maxEBercu   = max(max(max(abs(EBercu))));
+%     maxEBercu   = max(max(max(abs(EBercu))));
     maxEBerch   = max(abs(EBerch));
     maxEBers    = max(abs(EBers));
     
-    CONT        = ( maxEBercu >   maxEBer    |...
+    CONT        = (... % maxEBercu >   maxEBer    |...
         maxEBerch >   maxEBer     |...
         maxEBers  >   maxEBer)    &...
         counter   <   maxit+1;%        Continue iteration?
     if ~CONT
-        if any(isnan([maxEBercu, maxEBerch, maxEBers]))
+        if any(isnan([maxEBerch, maxEBers]))
             fprintf('WARNING: NaN in fluxes, counter = %i\n', counter)
         end
         break
@@ -257,11 +239,11 @@ while CONT                          % while energy balance does not close
     if counter==100; Wc = 0.2;  end
     
     % 2.7. New estimates of soil (s) and leaf (c) temperatures, shaded (h) and sunlit (1)
-    Tch         = Tch + Wc*EBerch./((rhoa*cp)./rac + rhoa*lambdah*e_to_q.*sh./(rac+bch.rcw)+ 4*leafbio.emis*sigmaSB*(Tch+273.15).^3);
-    Tcu         = Tcu + Wc*EBercu./((rhoa*cp)./rac + rhoa*lambdau*e_to_q.*su./(rac+bcu.rcw)+ 4*leafbio.emis*sigmaSB*(Tcu+273.15).^3);
+    Tch         = Tch + Wc*EBerch./((rhoa*cp)./rac + rhoa*lambdah*e_to_q.*sh./(rac+bch.rcw)+ 4*leafbio.emis*sigmaSB*(meteo_h.T+273.15).^3);
+    Tcu         = mean(Tch) .* ones(size(Rnuc)); %+ Wc*EBercu./((rhoa*cp)./rac + rhoa*lambdau*e_to_q.*su./(rac+bcu.rcw)+ 4*leafbio.emis*sigmaSB*(meteo_u.T+273.15).^3);
     Ts          = Ts + Wc*EBers./(rhoa*cp./ras + rhoa*lambdas*e_to_q.*ss/(ras+rss)+ 4*(1-soil.rs_thermal)*sigmaSB*(Ts+273.15).^3);  
     Tch(abs(Tch)>100) = Ta;
-    Tcu(abs(Tcu)>100) = Ta;
+%     Tcu(abs(Tcu)>100) = Ta;
 end
 
 %% 3. Print warnings whenever the energy balance could not be solved
@@ -274,16 +256,19 @@ end
 
 %% 4. some more outputs
 iter.counter    = counter;
-thermal.Tcu     = Tcu;
+% this is not yet written to output but making it avg here breaks RTMt_sb
+% thermal.Tcu     = mean(Tcu(:));
+% thermal.Tch     = mean(Tch);
+thermal.Tcu     = mean(Tch) .* ones(size(Rnuc));
 thermal.Tch     = Tch;
 thermal.Tsu     = Ts(2);
 thermal.Tsh     = Ts(1);
 
-fluxes.Rnctot = LAI* aggregator(Rnhc, Rnuc, Fc, Ps, canopy);     % net radiation leaves
-fluxes.lEctot = LAI* aggregator(lEch, lEcu, Fc, Ps, canopy);     % latent heat leaves
-fluxes.Hctot  = LAI* aggregator(Hch, Hcu, Fc, Ps, canopy);       % sensible heat leaves
-fluxes.Actot  = LAI* aggregator(bch.A, bcu.A, Fc, Ps, canopy);   % photosynthesis leaves
-fluxes.Tcave  = aggregator(Tch, Tcu, Fc, Ps, canopy);            % mean leaf temperature
+fluxes.Rnctot = mean(Rnhc)*(1-Fc) + mean(Rnuc(:))*Fc; %LAI* aggregator(mean(Rnhc), mean(Rnuc(:)), Fc, Ps, canopy);     % net radiation leaves
+fluxes.lEctot = LAI* (lEch); %aggregator(lEch, lEcu, Fc, Ps, canopy);     % latent heat leaves
+fluxes.Hctot  = LAI* (Hch); %aggregator(Hch, Hcu, Fc, Ps, canopy);       % sensible heat leaves
+fluxes.Actot  = LAI* (bch.A); %aggregator(bch.A, bcu.A, Fc, Ps, canopy);   % photosynthesis leaves
+fluxes.Tcave  = aggregator(mean(Tch), mean(Tcu(:)), Fc, Ps, canopy);            % mean leaf temperature
 
 fluxes.Rnstot = Fs*Rns;           % Net radiation soil
 fluxes.lEstot = Fs*lEs;           % Latent heat soil
@@ -297,15 +282,11 @@ fluxes.lEtot = fluxes.lEctot + fluxes.lEstot;
 fluxes.Htot = fluxes.Hctot + fluxes.Hstot;
 fluxes.rss = rss;
 
-%% update soil temperatures history
-if SoilHeatMethod < 2
-    Tsold(2:end,:) = soil.Tsold(1:end-1,:);
-    Tsold(1,:) 	= Ts(:);
-    if isnan(Ts) 
-        Tsold(1,:) = Tsold(2,:); 
-    end
-    soil.Tsold = Tsold;
-end
+%% faking back layer structure of SCOPE
+
+bch     = b(leafbio,meteo_h,options,constants,fV);
+bcu     = b(leafbio,meteo_h,options,constants,fVu);  % notice meteo_h, not _u
+
 end
 
 

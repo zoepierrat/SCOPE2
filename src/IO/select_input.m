@@ -83,14 +83,15 @@ if soil.SMC > 1
 end   
 
 %% derived input
-% if options.soil_heat_method ==1
-%     soil.GAM =  Soil_Inertia1(soil.SMC);
-% else
-%     soil.GAM  = Soil_Inertia0(soil.cs,soil.rhos,soil.lambdas);
-% end
-%if options.calc_rss_rbs
+if options.soil_heat_method ==1
+    soil.GAM =  Soil_Inertia1(soil.SMC);
+else
+    soil.GAM  = Soil_Inertia0(soil.cs,soil.rhos,soil.lambdas);
+end
+
+if options.calc_rss_rbs
     [soil.rss,soil.rbs] = calc_rssrbs(soil.SMC,canopy.LAI,soil.rbs);
-%end
+end
 
 if leafbio.Type
     leafbio.Type = 'C4';

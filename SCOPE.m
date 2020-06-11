@@ -62,6 +62,8 @@ options.simulation          = N(11);    % 0: individual runs (specify all input 
 % 3: Lookup-Table with random input (specify the ranges of values)
 options.calc_directional     = N(12);    % 0: calculate full BRDF (many angles)
 options.calc_vert_profiles   = N(13);
+options.soil_heat_method     = N(14);  % 0 - GAM=Soil_Inertia0(lambdas), 1 - GAM=Soil_Inertia1(SMC), 2 - G=0.35*Rn (always in no TS)
+options.calc_rss_rbs          = N(15);  % 0 - fixed, 1 calc
 
 if options.simulation>2 || options.simulation<0, fprintf('\n simulation option should be between 0 and 2 \r'); return, end
 
@@ -190,6 +192,15 @@ else
 end
 
 %% 12. preparations
+%% soil heat
+if options.simulation==1
+    if options.soil_heat_method<2
+        if (isempty(meteo.Ta) || meteo.Ta<-273), meteo.Ta = 20; end
+        soil.Tsold = meteo.Ta*ones(12,2);
+    end
+end
+
+%% variables
 nvars = length(V);
 vmax = cellfun(@length, {V.Val})';
 vmax([14,27],1) = 1; % these are Tparam and LIDFb
@@ -316,7 +327,15 @@ for k = 1:telmax
         %% energy balance
         [iter,rad,thermal,soil,bcu,bch,fluxes]             ...
             = ebal(constants,options,rad,gap,  ...
-            meteo,soil,canopy,leafbio);
+            meteo,soil,canopy,leafbio, k, xyt);
+        
+%         [iter,rad,thermal,soil,bcu,bch,fluxes]             ...
+%             = ebal_sunshade(constants,options,rad,gap,  ...
+%             meteo,soil,canopy,leafbio);
+        
+%         [iter,rad,thermal,soil,bcu,bch,fluxes]             ...
+%             = ebal_bigleaf(constants,options,rad,gap,  ...
+%             meteo,soil,canopy,leafbio);
         
         %% fluorescence radiative transfer model
         if options.calc_fluor
