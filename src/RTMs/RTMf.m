@@ -24,6 +24,7 @@ function rad = RTMf(constants,spectral,rad,soil,leafopt,canopy,gap,angles,etau,e
 % Update:   Jan 2020 CvdT           Modified to include 'lite' option,
 %                                   mSCOPE representation
 % Update:   17 Mar 2020 CvdT        added clumping
+%           25 Jun 2020 PY          Po, Ps, Pso. fix the problem we have with the oblique angles above 80 degrees
 
 % Table of contents of the function:
 %   0       preparations
@@ -81,7 +82,8 @@ Ps           = gap.Ps;
 Po           = gap.Po;
 Pso          = gap.Pso;
 
-Qs          = (Ps(layers)  + Ps(layers+1))/2;
+Qs          =  Ps;
+
 
 [MpluEmin   ,...
     MpluEplu   , ...

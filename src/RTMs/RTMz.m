@@ -6,7 +6,8 @@ function [rad] = RTMz(constants,spectral,rad,soil,leafopt,canopy,gap,angles,Knu,
 % Author:  Christiaan van der Tol (c.vandertol@utwente.nl)
 % Date:     08 Dec 2016
 %           17 Mar 2020     CvdT    added cluming, mSCOPE representation
-%
+%           25 Jun 2020     PY      Po, Ps, Pso. fix the problem we have with the oblique angles above 80 degrees
+
 % The inputs and outputs are structures. These structures are further
 % specified in a readme file.
 %
@@ -51,7 +52,7 @@ TZ          = (leafopt.tranZ(:, iwlfi)-leafopt.tran(:, iwlfi))';
 Ps          = gap.Ps;
 Po          = gap.Po;
 Pso         = gap.Pso;
-Qs          = (Ps(layers)  + Ps(layers+1))/2;
+Qs          = Ps;
 
 % for speed-up the calculation only uses wavelength i and wavelength o part of the spectrum
 Esunf_             = rad.Esun_(iwlfi);
