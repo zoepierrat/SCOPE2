@@ -1,4 +1,4 @@
-function n_col = output_data_binary(f, k, xyt, rad,  canopy, V, vi, vmax, options, fluxes, meteo)
+function n_col = output_data_binary(f, k, xyt, rad,  canopy, V, vi, vmax, options, fluxes, meteo, iter)
 %% OUTPUT DATA
 % author C. Van der Tol
 % date:      30 Nov 2019 
@@ -17,7 +17,7 @@ n_col.veg = length(veg_out);
 fwrite(f.veg_file,veg_out,'double');
 
 %% Fluxes product
-flu_out = [k xyt.year(k) xyt.t(k) cell2mat(struct2cell(fluxes))'];
+flu_out = [k iter.counter xyt.year(k) xyt.t(k) cell2mat(struct2cell(fluxes))'];
 n_col.flu = length(flu_out);
 fwrite(f.flu_file,flu_out,'double');
 

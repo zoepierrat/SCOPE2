@@ -252,9 +252,9 @@ while CONT                          % while energy balance does not close
         end
         break
     end
-    if counter==10, Wc = 0.8;  end
-    if counter==60; Wc = 0.6;  end
-    if counter==100; Wc = 0.2;  end
+    if counter==5, Wc = 0.6;  end
+    if counter==10; Wc = 0.4;  end
+    if counter==30; Wc = 0.1;  end
     
     % 2.7. New estimates of soil (s) and leaf (c) temperatures, shaded (h) and sunlit (1)
     Tch         = Tch + Wc*EBerch./((rhoa*cp)./rac + rhoa*lambdah*e_to_q.*sh./(rac+bch.rcw)+ 4*leafbio.emis*sigmaSB*(Tch+273.15).^3);

@@ -96,8 +96,10 @@ n			= Cd*LAI/(2*kappa^2);      %                            []
 
 %% stability correction for non-neutral conditions
 %neu		= find(L >= -.001 & L <= .001);
-unst        = find(L <  -4);
-st          = find(L >  4E3);
+%unst        = find(L <  -4);
+%st          = find(L >  4E3);
+unst        = find(L <  0 & L>-500);
+st          = find(L >  0 & L<500);
 
 % stability correction functions, friction velocity and Kh=Km=Kv
 pm_z    	= psim(z -d,L,unst,st);
