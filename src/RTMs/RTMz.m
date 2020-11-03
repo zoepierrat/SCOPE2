@@ -34,10 +34,6 @@ nwlZ        = length(spectral.wlZ);
 nl          = canopy.nlayers;
 LAI         = gap.LAI_Cv;
 iLAI        = LAI/nl;                       % LAI of a layer        [1]
-Cv          = canopy.Cv;
-Cs          = gap.Cs;
-Fod         = gap.Fod;
-Fcd         = gap.Fcd;
 litab       = canopy.litab;
 lazitab     = canopy.lazitab;
 lidf        = canopy.lidf;
@@ -185,10 +181,10 @@ for k = 1:2
         Fmin_(j+1,:,k)  = Xdd(j,:).*Fmin_(j,:,k)+Y(j,:);
         Fplu_(j,:,k)  = R_dd(j,:).*Fmin_(j,:,k)+U(j,:);
     end
-    piLo1     = iLAI*Cv*piLs*Pso(1:nl);
-    piLo2     = iLAI*Cv*piLd*(Po(1:nl)-Pso(1:nl));
+    piLo1     = iLAI*piLs*Pso(1:nl);
+    piLo2     = iLAI*piLd*(Po(1:nl)-Pso(1:nl));
     piLo3     = iLAI*(vb.*Fmin_(layers,:,k)  + vf.*Fplu_(layers,:,k))'*Po(1:nl);
-    piLo4     = rs .* (Fod +Fcd*Po(end)* Fmin_(end,:,k)');
+    piLo4     = rs .* (Po(end)* Fmin_(end,:,k)');
     piLtot    = piLo1 + piLo2 + piLo3 + piLo4;
     LoF_(:,k)      = piLtot/pi;
 end

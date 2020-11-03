@@ -19,7 +19,7 @@ function [rad] = RTMt_sb(constants,rad,soil,leafbio,canopy,gap,Tcu,Tch,Tsu,Tsh,o
 %           16 Mar 2009 CvdT    removed Tbright calculation
 %              Feb 2013 WV      introduces structures for version 1.40
 %           04 Dec 2019 CvdT    adapted for SCOPE-lite
-%           17 Mar 2020 CvdT    mSCOPE representation, added clumping
+%           17 Mar 2020 CvdT    mSCOPE representation
 %
 % Table of contents of the function
 %   0       preparations
@@ -73,12 +73,6 @@ epss        = 1-rs;                   % [nwl]               Emissivity soil
 LAI         = gap.LAI_Cv;
 dx          = 1/nl;
 iLAI        = LAI*dx;
-Cv          = canopy.Cv;
-Cs          = gap.Cs;
-Fos         = gap.Fos;
-Fod         = gap.Fod;
-Fcs         = gap.Fcs;
-Fcd         = gap.Fcd;
 
 Xdd         = rad.Xdd(:,end);
 Xsd         = rad.Xsd(:,end);
@@ -124,22 +118,20 @@ for j=1:nl       % from top to bottom
     Eplu(j)     = R_sd(j).*Es_(j)+R_dd(j).*Emin(j)+U(j);
 end
 Eplu(nl+1)      = R_sd(nl).*Es_(nl)+R_dd(nl).*Emin(nl)+Hs;
-Eoutte          = Eplu(1)*Cs + (1-Cs)*Hssu;
+Eoutte          = Eplu(1);
 
 % 1.4 Directional radiation and brightness temperature
 if obsdir
     K           = gap.K;
     vb          = rad.vb(end);
     vf          = rad.vf(end);
-    piLov       = Cv*iLAI*...
+    piLov       = iLAI*...
         (K*Hcsh'*(gap.Po(1:nl)-gap.Pso(1:nl))+  ...              % directional   emitted     radation by shaded leaves
         K*Hcsu'*gap.Pso(1:nl)+ ... % compute column means for each level
         (vb*Emin(1:nl) + vf*Eplu(1:nl))'*gap.Po(1:nl));      % directional   scattered   radiation by vegetation for diffuse incidence
     
-    piLos       = Fcd*(Hssh*(gap.Po(nl+1)-gap.Pso(nl+1))+ Hssu*gap.Pso(nl+1)) +...                        % directional   emitted     radiation by shaded soil
-        Fcs*Hssu*gap.Po(nl+1)+...                                   % directional   emitted     radiation by sunlit soil
-        Fos*Hssu + ...
-        Fod * ( (1-Ps(end))*Hssh +Ps(end)*Hssu);
+    piLos       = (Hssh*(gap.Po(nl+1)-gap.Pso(nl+1))+ Hssu*gap.Pso(nl+1));                        % directional   emitted     radiation by  soil
+
     
     piLot       = piLov + piLos;
     Tbr         = (piLot/constants.sigmaSB)^0.25;

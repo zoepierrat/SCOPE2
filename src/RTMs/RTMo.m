@@ -8,9 +8,9 @@ function [rad,gap,canopy,profiles] = RTMo(spectral,atmo,soil,leafopt,canopy,angl
 % particular canopy. All necessary parameters and variables are input or
 % global and need to be specified elsewhere.
 %
-% Authors:      Wout Verhoef            (verhoef@nlr.nl) 
-%               Christiaan van der Tol  (tol@itc.nl)
-%               Joris Timmermans        (j_timmermans@itc.nl)
+% Authors:      Wout Verhoef            (w.verhoef@utwente.nl) 
+%               Christiaan van der Tol  (c.vandertol@utwente.nl)
+%               Joris Timmermans        ()
 %
 % updates:      10 Sep 2007 (CvdT)      - calculation of Rn
 %                5 Nov 2007             - included observation direction
@@ -37,7 +37,7 @@ function [rad,gap,canopy,profiles] = RTMo(spectral,atmo,soil,leafopt,canopy,angl
 %               Apri 2013 (CvT)         - improvements in variable names
 %                                           and descriptions
 %                  Dec 2019 CvdT        mSCOPE representation, lite option
-%               17 Mar 2020 CvdT        added clumping
+%
 %                                      
 % Table of contents of the function
 %
@@ -265,38 +265,23 @@ Pso(Pso>Po)= min([Po(Pso>Po),Ps(Pso>Po)],[],2);    %takes care of rounding error
 Pso(Pso>Ps)= min([Po(Pso>Ps),Ps(Pso>Ps)],[],2);    %takes care of rounding error
 gap.Pso      = Pso;
 
-overlap = min(Cs * (1 - Co), Co * (1 - Cs)) * exp(-dso / theta); % corrected by Wouter 2007
-Fcd = Co * Cs + overlap;  % shaded, below canopy, obscured
-Fcs = Co * (1 - Cs) - overlap; % sunlit, below canopy, obscured
-Fod = (1 - Co) * Cs - overlap; % shaded, outside canopy, visible
-Fos = (1 - Co) * (1 - Cs) + overlap; % sunlit, outside canopy, visible
-
 %%
 % 3.3 outgoing fluxes, hemispherical and in viewing direction, spectrum
 % in viewing direction, spectral due to diffuse light
 
 % vegetation contribution
 piLocd_     = (sum(vb.*Po(1:nl).*Emind_(1:nl,:)) +...
-              sum(vf.*Po(1:nl).*Eplud_(1:nl,:)))'*iLAI*Cv;
+              sum(vf.*Po(1:nl).*Eplud_(1:nl,:)))'*iLAI;
 % soil contribution          
-piLosd_     = rs.* ...
-    (Fos * (Esky_) + ...
-     Fod * (Emind_(end,:)'+Ps(end)) + ...
-     Fcs * Esky_*Po(end) + ...
-     Fcd * (Emind_(end,:)'*Po(end))); 
+piLosd_     = rs.*(Emind_(end,:)'*Po(end)); 
 
 % in viewing direction, spectral due to direct solar light
 % vegetation contribution
 piLocu_     = (sum(vb.*Po(1:nl).*Emins_(1:nl,:)) +...
               sum(vf.*Po(1:nl).*Eplus_(1:nl,:))+...
-              sum(w.*Pso(1:nl).*Esun_'))'*iLAI*Cv;
-
+              sum(w.*Pso(1:nl).*Esun_'))'*iLAI;
 % soil contribution
-piLosu_     = rs.* ...
-    (Fos * Esun_ + ...
-     Fod * (Emins_(end,:)'+Ps(end)*Esun_) + ...
-     Fcs * Esun_*Po(end) + ...
-     Fcd * (Emins_(end,:)'*Po(end) + Esun_*Pso(end))); 
+piLosu_     = rs.* (Emins_(end,:)'*Po(end) + Esun_*Pso(end)); 
 
 piLod_      = piLocd_ + piLosd_;        % [nwl] piRad in obsdir from Esky
 piLou_      = piLocu_ + piLosu_;        % [nwl] piRad in obsdir from Eskun
@@ -304,11 +289,11 @@ piLoc_      = piLocu_ + piLocd_;        % [nwl] piRad in obsdir from vegetation
 piLos_      = piLosu_ + piLosd_;        % [nwl] piRad in obsdir from soil
 
 piLo_       = piLoc_ + piLos_;          % [nwl] piRad in obsdir
-Lo_         = piLo_/pi;                 % [nwl] Rad in obsdir
-Refl        = piLo_./(Esky_+Esun_);     % [nwl] rso and rdo are not computed separately 
 
+Lo_         = piLo_/pi;                 % [nwl] Rad in obsdir
 rso         = piLou_./Esun_;            % [nwl] obsdir reflectance of solar beam
-rdo         = piLod_./Esky_;            % [nlw] obsir refectlance of sky irradiance
+rdo         = piLod_./Esky_;            % [nlw] obsir reflectance of sky irradiance
+Refl        = piLo_./(Esky_+Esun_);     % [nwl] rso and rdo are not computed 
 
 %% 4. net fluxes, spectral and total, and incoming fluxes
 %4.1 incident PAR at the top of canopy, spectral and spectrally integrated
@@ -478,12 +463,6 @@ rad.Xdd     =   Xdd;
 rad.Xsd     = Xsd;
 rad.Xss     = Xss;
 
-gap.Fcd     = Fcd;
-gap.Fcs     = Fcs;
-gap.Fod     = Fod;
-gap.Fos     = Fos;
-gap.Cs      = Cs;
-gap.Co      = Co;
 gap.LAI_Cv = LAI;
 
 % Rn = canopy.LAI*(meanleaf(canopy,rad.Rnhc,'layers',(1-Ps(1:nl)))+meanleaf(canopy,rad.Rnuc,'angles_and_layers',Ps(1:nl)))

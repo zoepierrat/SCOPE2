@@ -23,8 +23,7 @@ function rad = RTMf(constants,spectral,rad,soil,leafopt,canopy,gap,angles,etau,e
 % Update:   Oct 2017-Feb 2018 PY    Re-write the RTM of fluorescence
 % Update:   Jan 2020 CvdT           Modified to include 'lite' option,
 %                                   mSCOPE representation
-% Update:   17 Mar 2020 CvdT        added clumping
-%           25 Jun 2020 PY          Po, Ps, Pso. fix the problem we have with the oblique angles above 80 degrees
+% Update:   25 Jun 2020 PY          Po, Ps, Pso. fix the problem we have with the oblique angles above 80 degrees
 
 % Table of contents of the function:
 %   0       preparations
@@ -66,10 +65,6 @@ wlE          =   (400:5:750)'; %spectral.wlE';    % Excitation wavelengths
 nf           = length(iwlfo);
 nl           = canopy.nlayers;
 LAI          = gap.LAI_Cv;
-Cv           = canopy.Cv;
-Cs           = gap.Cs;
-Fod          = gap.Fod;
-Fcd          = gap.Fcd;
 litab        = canopy.litab;
 lazitab      = canopy.lazitab;
 lidf         = canopy.lidf;
@@ -227,13 +222,14 @@ for j=1:nl          % from top to bottom
     Fmin_(j+1,:)  = Xdd(j,:).*Fmin_(j,:)+Y(j,:);
     Fplu_(j,:)  = R_dd(j,:).*Fmin_(j,:)+U(j,:);
 end
-piLo1     = iLAI*Cv*piLs*Pso(1:nl);
-piLo2     = iLAI*Cv*piLd*(Po(1:nl)-Pso(1:nl));
-piLo3     = iLAI*Cv*(vb.*Fmin_(layers,:)  + vf.*Fplu_(layers,:))'*Po(1:nl);
-piLo4     = rs .* (Fod +Fcd*Po(end)* Fmin_(end,:)');
+piLo1     = iLAI*piLs*Pso(1:nl);
+piLo2     = iLAI*piLd*(Po(1:nl)-Pso(1:nl));
+piLo3     = iLAI*(vb.*Fmin_(layers,:)  + vf.*Fplu_(layers,:))'*Po(1:nl);
+piLo4     = rs .* Fmin_(nl+1,:)' * Po(nl+1);
+
 piLtot      = piLo1 + piLo2 + piLo3 + piLo4;
 LoF_        = piLtot/pi;
-Fhem_       = Fplu_(1,:)'*Cs;
+Fhem_       = Fplu_(1,:)';
 
 rad.LoF_    = interp1(wlF,LoF_,spectral.wlF','splines');
 rad.EoutF_   = interp1(wlF,Fhem_,spectral.wlF','splines');
@@ -243,7 +239,7 @@ rad.LoF_shaded      = interp1(wlF,piLo2/pi,spectral.wlF','splines');
 rad.LoF_scattered   = interp1(wlF,piLo3/pi,spectral.wlF','splines');
 rad.LoF_soil        = interp1(wlF,piLo4/pi,spectral.wlF','splines');
 
-rad.EoutF   = 0.001 * Sint(Fhem_,wlF)*Cs;
+rad.EoutF   = 0.001 * Sint(Fhem_,wlF);
 rad.LoutF   = 0.001 * Sint(LoF_,wlF);
 
 [rad.F685,iwl685]  = max(rad.LoF_(1:55));
