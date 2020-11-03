@@ -241,6 +241,7 @@ for k = 1:telmax
     if options.simulation == 0, vi(vmax==telmax) = k; end
     [soil,leafbio,canopy,meteo,angles,xyt] = select_input(V,vi,canopy,options,constants,xyt,soil);
     canopy.nlayers  = ceil(10*canopy.LAI/canopy.Cv);
+    canopy.nlayers = max(2, canopy.nlayers);  % patch for LAI < 0.1
     nl              = canopy.nlayers;
 	x        = (-1/nl : -1/nl : -1)';         % a column vector
     canopy.xl       = [0; x];                 % add top level
