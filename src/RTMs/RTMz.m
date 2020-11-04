@@ -48,7 +48,7 @@ TZ          = (leafopt.tranZ(:, iwlfi)-leafopt.tran(:, iwlfi))';
 Ps          = gap.Ps;
 Po          = gap.Po;
 Pso         = gap.Pso;
-Qs          = (Ps(layers)  + Ps(layers+1))/2;
+Qs          = Ps(1:end-1);
 
 % for speed-up the calculation only uses wavelength i and wavelength o part of the spectrum
 Esunf_             = rad.Esun_(iwlfi);

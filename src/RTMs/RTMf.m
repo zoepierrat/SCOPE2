@@ -77,8 +77,7 @@ Ps           = gap.Ps;
 Po           = gap.Po;
 Pso          = gap.Pso;
 
-Qs          = (Ps(layers)  + Ps(layers+1))/2;
-
+Qs          = Ps(1:end-1);
 
 [MpluEmin   ,...
     MpluEplu   , ...
