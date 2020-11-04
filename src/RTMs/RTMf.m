@@ -77,7 +77,7 @@ Ps           = gap.Ps;
 Po           = gap.Po;
 Pso          = gap.Pso;
 
-Qs          =  Ps;
+Qs          =  Ps(1:end-1);
 
 
 [MpluEmin   ,...

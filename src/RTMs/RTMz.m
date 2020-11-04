@@ -48,7 +48,7 @@ TZ          = (leafopt.tranZ(:, iwlfi)-leafopt.tran(:, iwlfi))';
 Ps          = gap.Ps;
 Po          = gap.Po;
 Pso         = gap.Pso;
-Qs          = Ps;
+Qs          = Ps(1:end-1);
 
 % for speed-up the calculation only uses wavelength i and wavelength o part of the spectrum
 Esunf_             = rad.Esun_(iwlfi);
@@ -188,7 +188,7 @@ for k = 1:2
     piLtot    = piLo1 + piLo2 + piLo3 + piLo4;
     LoF_(:,k)      = piLtot/pi;
 end
-Fhem_     = sum(Fplu_(1,:,:),3)'*Cs;
+Fhem_     = sum(Fplu_(1,:,:),3)';
 
 %% output
 rad.Lo_(iwlfi)          = rad.Lo_(iwlfi) + sum(LoF_,2);
