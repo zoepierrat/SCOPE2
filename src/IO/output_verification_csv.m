@@ -75,12 +75,13 @@ for i = 1:L
                     for z = 1:nr
                         plot(D0(z,:)','k'), hold on, plot(D1(z,:)','r')
                     end
-                    title(info0(i).name)
+                    title(info0(i).name, 'interpreter', 'none')
                 else
+                    h0 = strsplit(h0{1}, ',');
                     for m = 1:size(D0,2)
                         subplot(spn,spn,m)
                         plot(D0(:,m),'k'), hold on, plot(D1(:,m),'r')
-                        title([info0(i).name h0(m)])
+                        title([info0(i).name h0(m)], 'interpreter', 'none')
                     end
                 end
                 differentcontent = 1;
