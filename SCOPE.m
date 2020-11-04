@@ -410,7 +410,7 @@ for k = 1:telmax
         n_col = output_data_binary(f, k, xyt, rad, canopy, V, vi, vmax, options, fluxes, meteo, iter);
         
         %% update input
-        if options.simulation==2 && telmax>1, vi  = count(nvars,vi,vmax,1); end
+        if options.simulation==2 && telmax>1, vi  = count_k(nvars,vi,vmax,1); end
         
     end
 end
