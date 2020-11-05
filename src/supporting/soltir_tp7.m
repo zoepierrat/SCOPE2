@@ -16,7 +16,7 @@ function [wn,wl,Tall] = soltir_tp7(filename)
 % named t1...t18
 % The radiance data are converted into units of mW m-2 sr-1 nm-1
 % 
-% © Wouter Verhoef 2011-2014
+% (c) Wouter Verhoef 2011-2014
 
 fid     = fopen(filename,'r');
 modname = filename(1:size(filename,2)-4);
