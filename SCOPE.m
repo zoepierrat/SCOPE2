@@ -278,7 +278,7 @@ for k = 1:telmax
            mly.pCs    = mly_ts.pCs(k, :);
            mly.pN     = mly_ts.pN(k, :);
         elseif k == 1 && options.mSCOPE
-           mly = input_mSCOPE('input/mSCOPE.csv');
+           mly = input_mSCOPE(fullfile('input', 'mSCOPE.csv'));
         else
            if options.mSCOPE
                 warning('I do not know how to use mSCOPE layers with multiple but non time series runs, so I will not use it')

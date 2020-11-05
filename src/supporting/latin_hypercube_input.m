@@ -1,6 +1,6 @@
 function latin_hypercube_input(tab, n_spectra, outdir)
     if nargin == 0
-        outdir = fullfile('input', 'dataset LatinHypercube');
+        outdir = fullfile('input', 'dataset for_verification');
         tab = readtable(fullfile(outdir, 'input_borders.csv'));
         n_spectra = 30;
     end
