@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="5450a47a-da1f-4f11-9515-d44943f1a904" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/../output/verificationdata/rdo.csv" beforeDir="false" afterPath="$PROJECT_DIR$/../output/verificationdata/rdo.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../src/IO/bin_to_csv.m" beforeDir="false" afterPath="$PROJECT_DIR$/../src/IO/bin_to_csv.m" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$/.." value="master" />
+      </map>
+    </option>
+  </component>
+  <component name="JupyterTrust" id="9ee03d94-3283-4a59-9aa8-f961c45898f3" />
+  <component name="ProjectId" id="1SjEUVcDO8t5E7rLsajuP5WJSZu" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="1" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="nodejs_package_manager_path" value="npm" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="5450a47a-da1f-4f11-9515-d44943f1a904" name="Default Changelist" comment="" />
+      <created>1548847519258</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1548847519258</updated>
+      <workItem from="1562349159570" duration="19655000" />
+      <workItem from="1562513655641" duration="4607000" />
+      <workItem from="1563040343681" duration="17995000" />
+      <workItem from="1563180802951" duration="37000" />
+      <workItem from="1563461340130" duration="524000" />
+      <workItem from="1563961669097" duration="684000" />
+      <workItem from="1563962539237" duration="211000" />
+      <workItem from="1572068625251" duration="15633000" />
+      <workItem from="1573123403401" duration="1707000" />
+      <workItem from="1592234446856" duration="1541000" />
+      <workItem from="1604528636736" duration="688000" />
+      <workItem from="1604529378018" duration="17346000" />
+    </task>
+    <task id="LOCAL-00001" summary="started develop branch">
+      <created>1548850229906</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1548850229906</updated>
+    </task>
+    <task id="LOCAL-00002" summary="mSCOPE docs">
+      <created>1550167100653</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1550167100653</updated>
+    </task>
+    <task id="LOCAL-00003" summary="mSCOPE brief summary">
+      <created>1550236300554</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1550236300554</updated>
+    </task>
+    <task id="LOCAL-00004" summary="T18 and thermal reflectance for leaf">
+      <created>1550681400850</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1550681400850</updated>
+    </task>
+    <task id="LOCAL-00005" summary="Replaced nansum to sum in output_verification, because nansum requires additional toolbox.">
+      <created>1553524290478</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1553524290478</updated>
+    </task>
+    <task id="LOCAL-00006" summary="Docs for retrieval sorted">
+      <created>1563118681901</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1563118681901</updated>
+    </task>
+    <task id="LOCAL-00007" summary="retrieval url update">
+      <created>1563118933058</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1563118933058</updated>
+    </task>
+    <task id="LOCAL-00008" summary="typo correct">
+      <created>1563461388998</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1563461388998</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="oldMeFiltersMigrated" value="true" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <option name="CHECK_NEW_TODO" value="false" />
+    <MESSAGE value="started develop branch" />
+    <MESSAGE value="mSCOPE docs" />
+    <MESSAGE value="mSCOPE brief summary" />
+    <MESSAGE value="T18 and thermal reflectance for leaf" />
+    <MESSAGE value="Replaced nansum to sum in output_verification, because nansum requires additional toolbox." />
+    <MESSAGE value="Docs for retrieval sorted" />
+    <MESSAGE value="retrieval url update" />
+    <MESSAGE value="typo correct" />
+    <option name="LAST_COMMIT_MESSAGE" value="typo correct" />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="930" y="217" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1604531481734">
+      <screen x="0" y="0" width="1536" height="824" />
+    </state>
+    <state x="930" y="217" key="#com.intellij.fileTypes.FileTypeChooser/0.0.1536.824@0.0.1536.824" timestamp="1604531481734" />
+    <state x="431" y="145" width="672" height="678" key="search.everywhere.popup" timestamp="1604541511282">
+      <screen x="0" y="0" width="1536" height="824" />
+    </state>
+    <state x="431" y="145" width="672" height="678" key="search.everywhere.popup/0.0.1536.824@0.0.1536.824" timestamp="1604541511282" />
+  </component>
+</project>
