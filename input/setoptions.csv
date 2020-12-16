@@ -4,8 +4,8 @@
 1,calc_xanthophyllabs
 0,soilspectrum
 1,Fluorescence_model
-0,applTcorr
-1,verify
+1,applTcorr
+0,verify
 1,saveCSV
 0,mSCOPE
 1,simulation
